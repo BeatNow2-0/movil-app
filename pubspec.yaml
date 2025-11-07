@@ -1,0 +1,42 @@
+name: BeatNow
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  font_awesome_flutter: ^10.7.0
+  get: ^4.6.6
+  flutter_lints: ^2.0.0
+  path_provider: ^2.0.2
+  carousel_slider: ^4.0.0
+  http: ^1.2.1
+  audioplayers: ^6.0.0
+  image_picker: ^0.8.4+4
+  permission_handler: ^11.2.0
+  firebase_core: ^2.30.1
+  firebase_auth: ^4.19.4
+  google_sign_in: ^6.2.1
+  twitter_login: ^4.4.2
+  shared_preferences: ^2.2.3
+  speech_to_text: ^6.6.1
+  cached_network_image: ^3.0.0
+  flutter_soloud: ^2.0.1
+  google_fonts: ^4.0.3
+  regexed_validator: ^2.0.0+1
+  pin_code_fields: ^7.4.0
+  share_plus: ^6.0.1
+  
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/images/profile.jpg
