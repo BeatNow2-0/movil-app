@@ -7,9 +7,6 @@ workflows:
       xcode: 15.4 # Usa 15.4 en lugar de 16.4
       flutter: 3.24.5 # Versión específica compatible
       cocoapods: default
-      groups:
-        # Agrega tus grupos de variables de entorno aquí si los tienes
-        # - firebase_credentials
       vars:
         BUNDLE_ID: "com.example.flutterTest1"  # Cambia esto por tu Bundle ID real
     
@@ -61,7 +58,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - tu-email@example.com  # Cambia esto por tu email
+          - hugo.gds2004@gmail.com  # Cambia esto por tu email
         notify:
           success: true
           failure: true
