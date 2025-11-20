@@ -26,22 +26,40 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  use_frameworks! :linkage => :static
+  use_frameworks!
   use_modular_headers!
 
   flutter_install_all_ios_pods File.dirname(__FILE__)
-end
 
-target 'RunnerTests' do
-  inherit! :search_paths
+  target 'RunnerTests' do
+    inherit! :search_paths
+  end
 end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
-    flutter_additional_ios_build_settings(target)
-
+    # Ajustar el mínimo de iOS (por si algún pod pone menos)
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
     end
+
+    # FIX para el error de la opción '-G' en BoringSSL-GRPC
+    if target.name == 'BoringSSL-GRPC'
+      target.build_phases.each do |phase|
+        next unless phase.respond_to?(:files)
+
+        phase.files.each do |file|
+          next unless file.respond_to?(:settings) && file.settings
+          flags = file.settings['COMPILER_FLAGS']
+          next unless flags
+
+          cleaned_flags = flags.split.reject { |f| f == '-GCC_WARN_INHIBIT_ALL_WARNINGS' }
+          file.settings['COMPILER_FLAGS'] = cleaned_flags.join(' ')
+        end
+      end
+    end
+
+    # Llamada estándar de Flutter (déjala al final del loop)
+    flutter_additional_ios_build_settings(target)
   end
 end
