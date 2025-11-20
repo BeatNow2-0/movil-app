@@ -1,0 +1,55 @@
+
+workflows:
+  ios_debug:
+    name: iOS Debug (no codesign)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    environment:
+      flutter: stable        # mismo canal que usas ahora
+      xcode: latest          # Xcode 16.4 en Codemagic
+      cocoapods: default
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: master
+          include: true
+          source: true
+
+    scripts:
+      - name: Mostrar versiones
+        script: |
+          flutter --version
+          xcodebuild -version
+          pod --version
+
+      - name: Flutter clean + pub get
+        script: |
+          flutter clean
+          flutter pub get
+
+      - name: Pod install limpio
+        script: |
+          cd ios
+          rm -rf Pods Podfile.lock
+          pod install
+          cd ..
+
+      - name: Build iOS debug (sin firma)
+        script: |
+          flutter build ios --debug --no-codesign
+
+    artifacts:
+      - build/ios/iphoneos/Runner.app
+      - build/ios/iphoneos/*.ipa
+      - flutter_drive.log
+
+    publishing:
+      email:
+        recipients:
+          - "tu_correo@ejemplo.com"
+        notify:
+          success: true
+          failure: true
