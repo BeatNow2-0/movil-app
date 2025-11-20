@@ -1,64 +1,32 @@
 workflows:
-  ios-workflow:
-    name: iOS Build
-    instance_type: mac_mini_m1
+  ios_build:
+    name: iOS Build (Debug, no codesign)
+    instance_type: mac_mini_m2
     max_build_duration: 60
+
     environment:
-      xcode: 15.4 # Usa 15.4 en lugar de 16.4
-      flutter: 3.24.5 # Versión específica compatible
+      flutter: stable
+      xcode: latest
       cocoapods: default
-      vars:
-        BUNDLE_ID: "com.example.flutterTest1"  # Cambia esto por tu Bundle ID real
-    
+
     scripts:
-      - name: Set up Flutter
-        script: |
-          flutter upgrade
-          flutter --version
-          
-      - name: Clean project
+      - name: Flutter clean + pub get
         script: |
           flutter clean
-          
-      - name: Get Flutter dependencies
-        script: |
           flutter pub get
-          
-      - name: Clean iOS build folder
+
+      - name: Pod install limpio
         script: |
           cd ios
           rm -rf Pods
           rm -rf Podfile.lock
-          rm -rf .symlinks
-          rm -rf Flutter/Flutter.framework
-          rm -rf Flutter/Flutter.podspec
-          
-      - name: Update CocoaPods repo
+          pod install --repo-update
+          cd ..
+
+      - name: Build iOS Debug sin firma
         script: |
-          cd ios
-          pod repo update
-          
-      - name: Install CocoaPods dependencies
-        script: |
-          cd ios
-          pod install
-          
-      - name: Flutter doctor
-        script: |
-          flutter doctor -v
-          
-      - name: Build iOS (no codesign)
-        script: |
-          flutter build ios --release --no-codesign
-          
+          flutter build ios --debug --no-codesign
+
     artifacts:
       - build/ios/iphoneos/**/*.app
-      - build/ios/iphoneos/**/*.dSYM
-      
-    publishing:
-      email:
-        recipients:
-          - hugo.gds2004@gmail.com  # Cambia esto por tu email
-        notify:
-          success: true
-          failure: true
+      - build/ios/ipa/*.ipa
