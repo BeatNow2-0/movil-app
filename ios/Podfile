@@ -38,28 +38,26 @@ end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
-    # Ajustar el mínimo de iOS (por si algún pod pone menos)
+    # Asegurar iOS 13.0 mínimo en todos los pods
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
-    end
 
-    # FIX para el error de la opción '-G' en BoringSSL-GRPC
-    if target.name == 'BoringSSL-GRPC'
-      target.build_phases.each do |phase|
-        next unless phase.respond_to?(:files)
+      # Limpia la flag problemática en TODAS las configs
+      %w[OTHER_CFLAGS OTHER_CPLUSPLUSFLAGS].each do |key|
+        next unless config.build_settings[key]
 
-        phase.files.each do |file|
-          next unless file.respond_to?(:settings) && file.settings
-          flags = file.settings['COMPILER_FLAGS']
-          next unless flags
-
-          cleaned_flags = flags.split.reject { |f| f == '-GCC_WARN_INHIBIT_ALL_WARNINGS' }
-          file.settings['COMPILER_FLAGS'] = cleaned_flags.join(' ')
+        flags = config.build_settings[key]
+        # flags puede ser String o Array
+        if flags.is_a?(String)
+          cleaned = flags.split.reject { |f| f == '-GCC_WARN_INHIBIT_ALL_WARNINGS' }
+          config.build_settings[key] = cleaned.join(' ')
+        elsif flags.is_a?(Array)
+          config.build_settings[key] = flags.reject { |f| f == '-GCC_WARN_INHIBIT_ALL_WARNINGS' }
         end
       end
     end
 
-    # Llamada estándar de Flutter (déjala al final del loop)
+    # Ajustes estándar de Flutter
     flutter_additional_ios_build_settings(target)
   end
 end
