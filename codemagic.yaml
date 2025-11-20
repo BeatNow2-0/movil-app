@@ -1,55 +1,67 @@
-
 workflows:
-  ios_debug:
-    name: iOS Debug (no codesign)
+  ios-workflow:
+    name: iOS Build
+    instance_type: mac_mini_m1
     max_build_duration: 60
-    instance_type: mac_mini_m2
-
     environment:
-      flutter: stable        # mismo canal que usas ahora
-      xcode: latest          # Xcode 16.4 en Codemagic
+      xcode: 15.4 # Usa 15.4 en lugar de 16.4
+      flutter: 3.24.5 # Versión específica compatible
       cocoapods: default
-
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: master
-          include: true
-          source: true
-
+      groups:
+        # Agrega tus grupos de variables de entorno aquí si los tienes
+        # - firebase_credentials
+      vars:
+        BUNDLE_ID: "com.example.flutterTest1"  # Cambia esto por tu Bundle ID real
+    
     scripts:
-      - name: Mostrar versiones
+      - name: Set up Flutter
         script: |
+          flutter upgrade
           flutter --version
-          xcodebuild -version
-          pod --version
-
-      - name: Flutter clean + pub get
+          
+      - name: Clean project
         script: |
           flutter clean
+          
+      - name: Get Flutter dependencies
+        script: |
           flutter pub get
-
-      - name: Pod install limpio
+          
+      - name: Clean iOS build folder
         script: |
           cd ios
-          rm -rf Pods Podfile.lock
-          pod install
-          cd ..
-
-      - name: Build iOS debug (sin firma)
+          rm -rf Pods
+          rm -rf Podfile.lock
+          rm -rf .symlinks
+          rm -rf Flutter/Flutter.framework
+          rm -rf Flutter/Flutter.podspec
+          
+      - name: Update CocoaPods repo
         script: |
-          flutter build ios --debug --no-codesign
-
+          cd ios
+          pod repo update
+          
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios
+          pod install
+          
+      - name: Flutter doctor
+        script: |
+          flutter doctor -v
+          
+      - name: Build iOS (no codesign)
+        script: |
+          flutter build ios --release --no-codesign
+          
     artifacts:
-      - build/ios/iphoneos/Runner.app
-      - build/ios/iphoneos/*.ipa
-      - flutter_drive.log
-
+      - build/ios/iphoneos/**/*.app
+      - build/ios/iphoneos/**/*.dSYM
+      
     publishing:
       email:
         recipients:
-          - "tu_correo@ejemplo.com"
+          - tu-email@example.com  # Cambia esto por tu email
         notify:
           success: true
           failure: true
