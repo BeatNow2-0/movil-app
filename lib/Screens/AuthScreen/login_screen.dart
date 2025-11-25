@@ -13,41 +13,42 @@ import 'package:google_sign_in/google_sign_in.dart';
  
  
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
- 
- 
+  
+  
 }
  
 class _LoginScreenState extends State<LoginScreen> {
-  final AuthController _authController = Get.find<
-      AuthController>(); // Obtener instancia del controlador AuthController
+  final AuthController _authController = Get.find<AuthController>(); // Obtener instancia del controlador AuthController
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  // Obtain shared preferences.
- 
- 
+  
+  // FIX 1: Create a single instance of GoogleSignIn to use throughout the class.
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
   bool _obscurePassword = true;
- 
+  
   @override
   Widget build(BuildContext context) {
     final ButtonStyle buttonStyle = ElevatedButton.styleFrom(
-      backgroundColor: Color(0xFF3C0F4B),
-      minimumSize: Size(double.infinity, 56),
-      padding: EdgeInsets.symmetric(vertical: 16),
+      backgroundColor: const Color(0xFF3C0F4B),
+      minimumSize: const Size(double.infinity, 56),
+      padding: const EdgeInsets.symmetric(vertical: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12.0),
       ),
-      textStyle: TextStyle(
+      textStyle: const TextStyle(
         fontFamily: 'Franklin Gothic Demi',
         fontSize: 16.0,
       ),
     );
- 
- 
- 
+  
+  
+  
     return Scaffold(
-      backgroundColor: Color(0xFF111111),
+      backgroundColor: const Color(0xFF111111),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -57,7 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 SizedBox(height: MediaQuery.of(context).size.height * 0.005),
-                Text(
+                const Text(
                   'Welcome Back!',
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -66,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: Colors.white,
                       fontFamily: 'Franklin Gothic Demi'),
                 ),
-                Text(
+                const Text(
                   'Please sign into your account',
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -76,12 +77,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 SizedBox(height: MediaQuery.of(context).size.height * 0.12),
                 TextField(
-                  style: TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: 'Username',
-                    hintStyle: TextStyle(color: Colors.white70),
+                    hintStyle: const TextStyle(color: Colors.white70),
                     filled: true,
-                    fillColor: Color(0xFF494949),
+                    fillColor: const Color(0xFF494949),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.0),
                       borderSide: BorderSide.none,
@@ -89,18 +90,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   controller: _usernameController,
                 ),
-                SizedBox(height: 20.0),
+                const SizedBox(height: 20.0),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     TextField(
-                      style: TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Colors.white),
                       obscureText: _obscurePassword,
                       decoration: InputDecoration(
                         hintText: 'Password',
-                        hintStyle: TextStyle(color: Colors.white70),
+                        hintStyle: const TextStyle(color: Colors.white70),
                         filled: true,
-                        fillColor: Color(0xFF494949),
+                        fillColor: const Color(0xFF494949),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.0),
                           borderSide: BorderSide.none,
@@ -122,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           // Acción para cambiar a la pestaña de registro
                           _authController.changeTab(2);
                         },
-                        child: Text(
+                        child: const Text(
                           "Forgot Password?",
                           style: TextStyle(
                             color: Colors.white,
@@ -134,38 +135,38 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
-                SizedBox(height: 80.0),
+                const SizedBox(height: 80.0),
                 ElevatedButton(
-                  child: Text('Sign In'),
                   onPressed: () {
                     // Navega a la pestaña HomeScreenState
                     _login(_usernameController.text, _passwordController.text,
                         context);
                   },
                   style: buttonStyle,
+                  child: Text('Sign In'),
                 ),
-                SizedBox(height: 20.0),
+                const SizedBox(height: 20.0),
                 ElevatedButton.icon(
-                  icon: FaIcon(FontAwesomeIcons.google, color: Colors.black),
-                  label: Text('Continue with Google',
+                  icon: const FaIcon(FontAwesomeIcons.google, color: Colors.black),
+                  label: const Text('Continue with Google',
                       style: TextStyle(color: Colors.black)),
                   onPressed: () {
                     signInWithGoogle(context);
                   },
                   style: buttonStyle.copyWith(
-                    backgroundColor: MaterialStateProperty.all(Colors.white),
+                    backgroundColor: WidgetStateProperty.all(Colors.white),
                   ),
                 ),
-                SizedBox(height: 40.0),
+                const SizedBox(height: 40.0),
                 RichText(
                   textAlign: TextAlign.center,
                   text: TextSpan(
                     text: "Don't have an account? ",
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
                     children: <TextSpan>[
                       TextSpan(
                         text: 'Sign Up',
-                        style: TextStyle(
+                        style: const TextStyle(
                             decoration: TextDecoration.underline,
                             color: Color(0xFF4E0566)),
                         recognizer: TapGestureRecognizer()
@@ -184,21 +185,21 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
- 
+  
   void _togglePasswordVisibility() {
     setState(() {
       _obscurePassword = !_obscurePassword;
     });
   }
- 
+  
   void _login(String username, String password, BuildContext context) async {
   // Obtener el token de acceso
   final token = await _token(username, password, context);
- 
+  
   if (token != null) {
     // Obtener información del usuario usando el token
     final userInfo = await getUserInfo(token);
- 
+  
     if (userInfo != null && userInfo['is_active'] == false) {
       _authController.changeTab(10);
     } else if(userInfo != null && userInfo['is_active'] != false){
@@ -209,17 +210,17 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   } else {
     // Mostrar mensaje de error si no se pudo obtener el token de acceso
-   
+    
   }
 }
   Future<Map<String, dynamic>> getTokenUser(String username, String password) async {
-    final apiUrl = Uri.parse('http://217.182.70.161:6969/token');
+    final apiUrl = Uri.parse('https://51.91.109.185:8001/token');
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final body = {
       'username': username,
       'password': password,
     };
- 
+  
     final response = await http.post(
       apiUrl,
       headers: <String, String>{
@@ -227,20 +228,20 @@ class _LoginScreenState extends State<LoginScreen> {
       },
       body: body,
     );
- 
+  
     if (response.statusCode == 200) {
       await prefs.setString('username', username);
       await prefs.setString('password', password);
     }
- 
+  
     // Decodificar y devolver la respuesta del servidor
     return json.decode(response.body);
   }
- 
- 
+  
+  
 Future<String?> _token(String username, String password, BuildContext context) async {
   final response = await getTokenUser(username, password);
- 
+  
   if (response["access_token"] != null) {
     // Actualizar el token de acceso en UserSingleton
     UserSingleton().token = response["access_token"];
@@ -252,10 +253,10 @@ Future<String?> _token(String username, String password, BuildContext context) a
     return null;
   }
 }
- 
+  
 Future<Map<String, dynamic>?> getUserInfo(String token) async {
-  final apiUrl = Uri.parse('http://217.182.70.161:6969/v1/api/users/users/me');
- 
+  final apiUrl = Uri.parse('https://51.91.109.185:8001/v1/api/users/users/me');
+  
   try {
     final response = await http.get(
       apiUrl,
@@ -264,7 +265,7 @@ Future<Map<String, dynamic>?> getUserInfo(String token) async {
         'Content-Type': 'application/json',
       },
     );
- 
+  
     if (response.body.isNotEmpty) {
       final jsonResponse = jsonDecode(response.body);
       UserSingleton().id = jsonResponse['id'];
@@ -291,69 +292,71 @@ Future<Map<String, dynamic>?> getUserInfo(String token) async {
     return null;
   }
 }
- 
- 
+  
+  
   // Función para mostrar un SnackBar con un mensaje de error
   void _showErrorSnackBar(String message, BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           message,
-          style: TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white),
         ),
-        backgroundColor: Color(0xFF3C0F4B),
+        backgroundColor: const Color(0xFF3C0F4B),
       ),
     );
   }
- 
+  
   final FirebaseAuth _auth = FirebaseAuth.instance;
- 
- 
+  
+  
 Future<User?> signInWithGoogle(BuildContext context) async {
     try {
- 
-      await GoogleSignIn().signOut();
- 
+  
+      // FIX 2: Use the instantiated _googleSignIn object instead of the constructor call
+      await _googleSignIn.signOut();
+  
       // Sign in with Google
-      final GoogleSignInAccount? gUser = await GoogleSignIn().signIn();
- 
+      // FIX 3: Use the instantiated _googleSignIn object instead of the constructor call
+      final GoogleSignInAccount? gUser = await _googleSignIn.signIn();
+  
       if (gUser == null) {
         // El usuario canceló el inicio de sesión
         return null;
       }
- 
+  
       final GoogleSignInAuthentication gAuth = await gUser.authentication;
- 
+  
       final credential = GoogleAuthProvider.credential(
-        accessToken: gAuth.accessToken,
+        accessToken: gAuth.idToken,
         idToken: gAuth.idToken,
       );
- 
+  
       // Autenticar con Firebase Auth
       final UserCredential userCredential =
           await _auth.signInWithCredential(credential);
-     
+      
       // Si la autenticación fue exitosa, navegar a la pantalla de inicio
-     if (userCredential.user != null) {
- 
+      if (userCredential.user != null) {
+  
         String fullName = gUser.displayName ?? '';
         String email = gUser.email ?? '';
         String username = gUser.email.split('@')[0]; // Supongamos que el nombre de usuario es la parte antes del '@' en el correo electrónico
         String password = 'GoogleAccount123!';
- 
+  
         String photo = gUser.photoUrl ?? '';
- 
+  
         try {
           // Intentar registrar al usuario
           await registerUser(fullName, email, username, password);
         } catch (e) {
           // Si hay una excepción al registrar al usuario, solo inicia sesión
-         print('User already registered. Logging in...');
+          print('User already registered. Logging in...');
         }
         _login(username, password, context);
- 
-    }
- 
+  
+      }
+  
       return userCredential.user;
     } catch (e) {
       // Manejar errores aquí, como problemas de conexión o de autenticación
@@ -361,17 +364,17 @@ Future<User?> signInWithGoogle(BuildContext context) async {
       return null;
     }
   }
- 
+  
   Future<Map<String, dynamic>> registerUser(String fullname, String email, String username, String password) async {
-  Uri apiUrl = Uri.parse('http://217.182.70.161:6969/v1/api/users/register');
- 
+  Uri apiUrl = Uri.parse('https://51.91.109.185:8001/v1/api/users/register');
+  
   Map<String, dynamic> body = {
     'full_name': fullname,
     'email': email,
     'username': username,
     'password': password,
   };
- 
+  
   final http.Response response = await http.post(
     apiUrl,
     headers: <String, String>{
@@ -379,14 +382,14 @@ Future<User?> signInWithGoogle(BuildContext context) async {
     },
     body: jsonEncode(body),
   );
- 
+  
   if (response.statusCode == 200) {
     return json.decode(response.body);
   } else {
     throw Exception('Failed to register user: ${response.body}');
   }
 }
- 
+  
 
- 
+  
 }

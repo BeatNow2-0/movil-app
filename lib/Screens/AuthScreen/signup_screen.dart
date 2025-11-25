@@ -2,7 +2,6 @@ import 'dart:convert';
  
 import 'package:BeatNow/Models/UserSingleton.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/gestures.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
@@ -15,6 +14,8 @@ import '../../Controllers/auth_controller.dart';
 void main() => runApp(MyApp());
  
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -23,8 +24,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.dark,
         primarySwatch: Colors.deepPurple,
-        textTheme: TextTheme(
-          bodyText2: TextStyle(
+        textTheme: const TextTheme(
+          bodyMedium: TextStyle(
             fontFamily: 'Franklin Gothic Demi',
           ),
         ),
@@ -35,6 +36,8 @@ class MyApp extends StatelessWidget {
 }
  
 class SignUpScreen extends StatefulWidget {
+  const SignUpScreen({super.key});
+
   @override
   _SignUpScreenState createState() => _SignUpScreenState();
 }
@@ -42,38 +45,38 @@ class SignUpScreen extends StatefulWidget {
 class _SignUpScreenState extends State<SignUpScreen> {
   final AuthController _authController = Get.find<AuthController>(); // Obtén la instancia del controlador AuthController
  
-  TextEditingController _emailController = TextEditingController();
-  TextEditingController _fullNameController = TextEditingController();
-  TextEditingController _usernameController = TextEditingController();
-  TextEditingController _passwordController = TextEditingController();
-  TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _fullNameController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
  
   @override
   Widget build(BuildContext context) {
     final ButtonStyle buttonStyle = ElevatedButton.styleFrom(
-      backgroundColor: Color(0xFF3C0F4B),
-      minimumSize: Size(double.infinity, 56),
-      padding: EdgeInsets.symmetric(vertical: 16),
+      backgroundColor: const Color(0xFF3C0F4B),
+      minimumSize: const Size(double.infinity, 56),
+      padding: const EdgeInsets.symmetric(vertical: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12.0),
       ),
-      textStyle: TextStyle(
+      textStyle: const TextStyle(
         fontFamily: 'Franklin Gothic Demi',
         fontSize: 16.0,
       ),
     );
  
     final ButtonStyle socialButtonStyle = ElevatedButton.styleFrom(
-      shape: CircleBorder(),
-      padding: EdgeInsets.all(16), // Sin efecto al presionar
+      shape: const CircleBorder(),
+      padding: const EdgeInsets.all(16), // Sin efecto al presionar
       shadowColor: Colors.transparent, // Sin sombra
       elevation: 0, // Sin elevación
     );
  
     return Scaffold(
-      backgroundColor: Color(0xFF111111), // Fondo de la pantalla
+      backgroundColor: const Color(0xFF111111), // Fondo de la pantalla
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -82,73 +85,73 @@ class _SignUpScreenState extends State<SignUpScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                SizedBox(height: 60),
-                Text(
+                const SizedBox(height: 60),
+                const Text(
                   'Create New Account',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold, color: Colors.white, fontFamily: 'Franklin Gothic Demi'),
                 ),
-                Text(
+                const Text(
                   'Please fill in the form to continue',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 16.0, color: Color(0xFF494949), fontFamily: 'Franklin Gothic Demi'),
                 ),
-                SizedBox(height: 30.0),
+                const SizedBox(height: 30.0),
                 TextField(
                   controller: _fullNameController,
-                  style: TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: 'Full Name',
-                    hintStyle: TextStyle(color: Colors.white70),
+                    hintStyle: const TextStyle(color: Colors.white70),
                     filled: true,
-                    fillColor: Color(0xFF494949),
+                    fillColor: const Color(0xFF494949),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.0),
                       borderSide: BorderSide.none,
                     ),
                   ),
                 ),
-                SizedBox(height: 20.0),
+                const SizedBox(height: 20.0),
                 TextField(
                   controller: _emailController,
-                  style: TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: 'Email Address',
-                    hintStyle: TextStyle(color: Colors.white70),
+                    hintStyle: const TextStyle(color: Colors.white70),
                     filled: true,
-                    fillColor: Color(0xFF494949),
+                    fillColor: const Color(0xFF494949),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.0),
                       borderSide: BorderSide.none,
                     ),
                   ),
                 ),
-                SizedBox(height: 20.0),
+                const SizedBox(height: 20.0),
                 TextField(
                   controller: _usernameController,
-                  style: TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: 'Username',
                     hintMaxLines: 20,
-                    hintStyle: TextStyle(color: Colors.white70),
+                    hintStyle: const TextStyle(color: Colors.white70),
                     filled: true,
-                    fillColor: Color(0xFF494949),
+                    fillColor: const Color(0xFF494949),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.0),
                       borderSide: BorderSide.none,
                     ),
                   ),
                 ),
-                SizedBox(height: 20.0),
+                const SizedBox(height: 20.0),
                 TextField(
                   controller: _passwordController,
-                  style: TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Colors.white),
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     hintText: 'Password',
-                    hintStyle: TextStyle(color: Colors.white70),
+                    hintStyle: const TextStyle(color: Colors.white70),
                     filled: true,
-                    fillColor: Color(0xFF494949),
+                    fillColor: const Color(0xFF494949),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.0),
                       borderSide: BorderSide.none,
@@ -166,16 +169,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: 20.0),
+                const SizedBox(height: 20.0),
                 TextField(
                   controller: _confirmPasswordController,
-                  style: TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Colors.white),
                   obscureText: _obscureConfirmPassword,
                   decoration: InputDecoration(
                     hintText: 'Confirm Password',
-                    hintStyle: TextStyle(color: Colors.white70),
+                    hintStyle: const TextStyle(color: Colors.white70),
                     filled: true,
-                    fillColor: Color(0xFF494949),
+                    fillColor: const Color(0xFF494949),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.0),
                       borderSide: BorderSide.none,
@@ -193,25 +196,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: 30.0),
+                const SizedBox(height: 30.0),
                 ElevatedButton(
-                  child: Text('Sign Up'),
                   onPressed: () {
                     // Implement registration logic
                     return _register(_fullNameController, _usernameController, _emailController, _passwordController, _confirmPasswordController);
                   },
                   style: buttonStyle,
+                  child: Text('Sign Up'),
                 ),
-                SizedBox(height: 40.0),
+                const SizedBox(height: 40.0),
                 RichText(
                   textAlign: TextAlign.center,
                   text: TextSpan(
                     text: 'Already have an account? ',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
                     children: <TextSpan>[
                       TextSpan(
                         text: 'Sign In',
-                        style: TextStyle(
+                        style: const TextStyle(
                           decoration: TextDecoration.underline,
                           color: Color(0xFF4E0566),
                         ),
@@ -273,9 +276,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
       SnackBar(
         content: Text(
           message,
-          style: TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white),
         ),
-        backgroundColor: Color(0xFF3C0F4B),
+        backgroundColor: const Color(0xFF3C0F4B),
       ),
     );
   }
@@ -314,7 +317,7 @@ void _login(String username, String password, BuildContext context) async {
 }
 }
   Future<Map<String, dynamic>> getTokenUser(String username, String password) async {
-    final apiUrl = Uri.parse('http://217.182.70.161:6969/token');
+    final apiUrl = Uri.parse('https://51.91.109.185:8001/token');
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final body = {
       'username': username,
@@ -354,7 +357,7 @@ Future<String?> _token(String username, String password, BuildContext context) a
 }
  
 Future<Map<String, dynamic>?> getUserInfo(String token) async {
-  final apiUrl = Uri.parse('http://217.182.70.161:6969/v1/api/users/users/me');
+  final apiUrl = Uri.parse('https://51.91.109.185:8001/v1/api/users/users/me');
  
   try {
     final response = await http.get(
@@ -395,7 +398,7 @@ Future<Map<String, dynamic>?> getUserInfo(String token) async {
  
  
 Future<Map<String, dynamic>> registerUser(String fullname, String email, String username, String password) async {
-  Uri apiUrl = Uri.parse('http://217.182.70.161:6969/v1/api/users/register');
+  Uri apiUrl = Uri.parse('https://51.91.109.185:8001/v1/api/users/register');
  
   Map<String, dynamic> body = {
     'full_name': fullname,

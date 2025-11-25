@@ -16,6 +16,8 @@ import 'package:BeatNow/Screens/HomeScreen/LyricEditorPage.dart';
 import 'package:audioplayers/audioplayers.dart';
 
 class HomeScreenState extends StatefulWidget {
+  const HomeScreenState({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -24,7 +26,7 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
   final AuthController _authController = Get.find<AuthController>();
   final AudioPlayer _audioPlayer = AudioPlayer();
 
-  List<Posts> _gifList = [];
+  final List<Posts> _gifList = [];
   int _selectedIndex = 1;
   int _currentIndex = 0;
   bool _isPlaying = false;
@@ -99,7 +101,7 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
                 child: CircleAvatar(
                   radius: 18,
                   backgroundImage:
-                      NetworkImage("${UserSingleton().profileImageUrl}"),
+                      NetworkImage(UserSingleton().profileImageUrl),
                 ),
               ),
               title: Row(
@@ -117,13 +119,13 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
                       },
                       child: _gifList.isNotEmpty
                           ? Text(
-                              "@" + _gifList[_currentIndex].username,
+                              "@${_gifList[_currentIndex].username}",
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 24,
                               ),
                             )
-                          : Text("")),
+                          : const Text("")),
                   const VerticalDivider(color: Colors.white),
                 ],
               ),
@@ -135,23 +137,23 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
                   },
                 ),
               ],
-              backgroundColor: Color(0xFF111111),
+              backgroundColor: const Color(0xFF111111),
             ),
       body: widgetOptions[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Container(
-              margin: EdgeInsets.symmetric(vertical: 20),
+              margin: const EdgeInsets.symmetric(vertical: 20),
               child: Icon(Icons.bookmark,
                   color:
-                      _selectedIndex == 0 ? Color(0xFF8731E4) : Colors.white),
+                      _selectedIndex == 0 ? const Color(0xFF8731E4) : Colors.white),
             ),
             label: ' ',
           ),
           BottomNavigationBarItem(
             icon: Container(
-              margin: EdgeInsets.symmetric(vertical: 10),
+              margin: const EdgeInsets.symmetric(vertical: 10),
               child: _selectedIndex == 1
                   ? Image.asset('assets/images/icono_central.png',
                       width: 37, height: 37, fit: BoxFit.cover)
@@ -162,10 +164,10 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
           ),
           BottomNavigationBarItem(
             icon: Container(
-              margin: EdgeInsets.symmetric(vertical: 10),
+              margin: const EdgeInsets.symmetric(vertical: 10),
               child: Icon(Icons.edit,
                   color:
-                      _selectedIndex == 2 ? Color(0xFF8731E4) : Colors.white),
+                      _selectedIndex == 2 ? const Color(0xFF8731E4) : Colors.white),
             ),
             label: ' ',
           ),
@@ -179,7 +181,7 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
         },
         selectedFontSize: 0,
         unselectedFontSize: 0,
-        backgroundColor: Color(0xFF0B0B0B),
+        backgroundColor: const Color(0xFF0B0B0B),
       ),
     );
   }
@@ -291,17 +293,17 @@ Widget _buildCarousel(BuildContext context) {
                   children: [
                     Text(
                       _gifList[index].title,
-                      style: TextStyle(
+                      style: const TextStyle(
                           color: Colors.white,
                           fontSize: 25,
                           fontWeight: FontWeight.bold),
                     ),
-                    SizedBox(height: 10),
-                    Container(
+                    const SizedBox(height: 10),
+                    SizedBox(
                       width: 300, // Margen a la derecha
                       child: Text(
                         _gifList[index].description,
-                        style: TextStyle(
+                        style: const TextStyle(
                             color: Colors.white,
                             fontSize:
                                 17, // Ajusta el tamaño según sea necesario
@@ -311,13 +313,13 @@ Widget _buildCarousel(BuildContext context) {
                             .ellipsis, // Ajuste para evitar overflow
                       ),
                     ),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                   ],
                 ),
               ),
             ],
           ),
-          SizedBox(width: 10),
+          const SizedBox(width: 10),
           Column(
             mainAxisAlignment: MainAxisAlignment.end,
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -340,16 +342,10 @@ Widget _buildCarousel(BuildContext context) {
                   ),
                 ),
               ),
-              SizedBox(height: 25),
+              const SizedBox(height: 25),
               Column(
                 children: [
                   FloatingActionButton(
-                    child: Icon(
-                      Icons.favorite,
-                      color:
-                          _gifList[index].liked ? Colors.purple : Colors.white,
-                      size: 35,
-                    ),
                     backgroundColor: Colors.transparent,
                     onPressed: () {
                       setState(() {
@@ -362,26 +358,25 @@ Widget _buildCarousel(BuildContext context) {
                       }
                     },
                     elevation: 0,
+                    child: Icon(
+                      Icons.favorite,
+                      color:
+                          _gifList[index].liked ? Colors.purple : Colors.white,
+                      size: 35,
+                    ),
                   ),
-                  SizedBox(height: 5),
+                  const SizedBox(height: 5),
                   Text(
                     _gifList[index].likes.toString(),
-                    style: TextStyle(
+                    style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
               FloatingActionButton(
-                child: Icon(
-                  Icons.bookmark,
-                  color: _gifList[index].saved
-                      ? Color.fromARGB(255, 252, 212, 81)
-                      : Colors.white,
-                  size: 35,
-                ),
                 backgroundColor: Colors.transparent,
                 onPressed: () {
                   setState(() {
@@ -394,10 +389,16 @@ Widget _buildCarousel(BuildContext context) {
                   }
                 },
                 elevation: 0,
+                child: Icon(
+                  Icons.bookmark,
+                  color: _gifList[index].saved
+                      ? Color.fromARGB(255, 252, 212, 81)
+                      : Colors.white,
+                  size: 35,
+                ),
               ),
-              SizedBox(height: 25),
+              const SizedBox(height: 25),
               FloatingActionButton(
-                child: Icon(Icons.ios_share, color: Colors.white, size: 35),
                 backgroundColor: Colors.transparent,
                 onPressed: () {
                   // Extracting details from the current post to share
@@ -408,6 +409,7 @@ Widget _buildCarousel(BuildContext context) {
                   Share.share(shareText);
                 },
                 elevation: 0,
+                child: Icon(Icons.ios_share, color: Colors.white, size: 35),
               ),
             ],
           ),
@@ -429,7 +431,7 @@ Widget _buildCarousel(BuildContext context) {
   void likePost(String postId) async {
     try {
       String apiUrl =
-          'http://217.182.70.161:6969/v1/api/interactions/like/$postId';
+          'https://51.91.109.185:8001//v1/api/interactions/like/$postId';
       _gifList[_currentIndex].likes = _gifList[_currentIndex].likes + 1;
 
       final token = UserSingleton().token;
@@ -451,7 +453,7 @@ Widget _buildCarousel(BuildContext context) {
   void unlikePost(String postId) async {
     try {
       String apiUrl =
-          'http://217.182.70.161:6969/v1/api/interactions/unlike/$postId';
+          'https://51.91.109.185:8001//v1/api/interactions/unlike/$postId';
       if (_gifList[_currentIndex].likes < 0) {
         _gifList[_currentIndex].likes = 0;
       }
@@ -476,7 +478,7 @@ Widget _buildCarousel(BuildContext context) {
   void savePost(String postId) async {
     try {
       String apiUrl =
-          'http://217.182.70.161:6969/v1/api/interactions/save/$postId';
+          'https://51.91.109.185:8001//v1/api/interactions/save/$postId';
 
       final token = UserSingleton().token;
       final response = await http.post(
@@ -497,7 +499,7 @@ Widget _buildCarousel(BuildContext context) {
   void unsavePost(String postId) async {
     try {
       String apiUrl =
-          'http://217.182.70.161:6969/v1/api/interactions/unsave/$postId';
+          'https://51.91.109.185:8001//v1/api/interactions/unsave/$postId';
 
       final token = UserSingleton().token;
       final response = await http.delete(
@@ -517,7 +519,7 @@ Widget _buildCarousel(BuildContext context) {
 }
 
 Future<Map<String, dynamic>> getPostInfo() async {
-  const apiUrl = 'http://217.182.70.161:6969/v1/api/posts/random';
+  const apiUrl = 'https://51.91.109.185:8001//v1/api/posts/random';
   final token = UserSingleton().token;
   final response = await http.get(
     Uri.parse(apiUrl),

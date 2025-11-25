@@ -13,6 +13,8 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
@@ -26,6 +28,8 @@ class MyApp extends StatelessWidget {
 }
 
 class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
+
   @override
   _ProfileScreenState createState() => _ProfileScreenState();
 }
@@ -59,11 +63,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               ListTile(
-                leading: Icon(Icons.camera),
-                title: Text('Take Photo'),
+                leading: const Icon(Icons.camera),
+                title: const Text('Take Photo'),
                 onTap: () async {
                   Navigator.pop(context); // Close the bottom sheet
-                  final pickedFile = await ImagePicker().getImage(source: ImageSource.camera);
+                  final pickedFile = await ImagePicker().pickImage(source: ImageSource.camera);
                   if (pickedFile != null) {
                     File imageFile = File(pickedFile.path); // Convierte XFile a File aquí
                     changePhoto(imageFile);
@@ -71,8 +75,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 },
               ),
               ListTile(
-                leading: Icon(Icons.photo),
-                title: Text('Choose from Gallery'),
+                leading: const Icon(Icons.photo),
+                title: const Text('Choose from Gallery'),
                 onTap: () async {
                   Navigator.pop(context); // Cierra la hoja inferior
                   final ImagePicker picker = ImagePicker();
@@ -84,15 +88,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 },
               ),
               ListTile(
-                leading: Icon(Icons.delete),
-                title: Text('Remove Profile Photo'),
+                leading: const Icon(Icons.delete),
+                title: const Text('Remove Profile Photo'),
                 onTap: () {
                   Navigator.pop(context);
                   deletePhoto();
                 },
               ),
               ListTile(
-                title: Text('Cancel'),
+                title: const Text('Cancel'),
                 onTap: () {
                   Navigator.pop(context); // Close the bottom sheet
                 },
@@ -109,15 +113,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             _authController.changeTab(3);
             Get.back(); // or Navigator.pop(context) if not using GetX
           },
         ),
         title: Text(
-          "@" + UserSingleton().username,
-          style: TextStyle(
+          "@${UserSingleton().username}",
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 20,
             color: Colors.white,
@@ -126,7 +130,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         centerTitle: true,
       ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -140,7 +144,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
@@ -153,16 +157,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
-                SizedBox(width: 20),
+                const SizedBox(width: 20),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Row(
                       children: <Widget>[
                         _buildStatColumn('Posts', '${_posts?.length ?? 0}'),
-                        SizedBox(width: 20),
+                        const SizedBox(width: 20),
                         _buildStatColumn('Following', '${_followersFollowing?['following'] ?? 0}'),
-                        SizedBox(width: 20),
+                        const SizedBox(width: 20),
                         _buildStatColumn('Followers', '${_followersFollowing?['followers'] ?? 0}'),
                       ],
                     ),
@@ -170,18 +174,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ],
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.only(left: 30.0),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   UserSingleton().name,
-                  style: TextStyle(fontSize: 18, color: Colors.white),
+                  style: const TextStyle(fontSize: 18, color: Colors.white),
                 ),
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Row(
@@ -192,30 +196,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         // Acción cuando se presiona el botón "Editar Perfil"
                       },
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.white),
+                        side: const BorderSide(color: Colors.white),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(5.0),
                         ),
                       ),
-                      child: Text(
+                      child: const Text(
                         'Edit Profile',
                         style: TextStyle(color: Colors.white),
                       ),
                     ),
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () {
                         _authController.changeTab(5);
                       },
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.white),
+                        side: const BorderSide(color: Colors.white),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(5.0),
                         ),
                       ),
-                      child: Text(
+                      child: const Text(
                         'Account Settings',
                         style: TextStyle(color: Colors.white),
                       ),
@@ -224,13 +228,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
-            SizedBox(height: 30),
+            const SizedBox(height: 30),
             Expanded(
               child: _posts == null
-                  ? Center(child: CircularProgressIndicator())
+                  ? const Center(child: CircularProgressIndicator())
                   : GridView.builder(
-                      padding: EdgeInsets.all(10.0),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      padding: const EdgeInsets.all(10.0),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 3,
                         mainAxisSpacing: 10.0,
                         crossAxisSpacing: 10.0,
@@ -266,18 +270,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: <Widget>[
         Text(
           count,
-          style: TextStyle(fontSize: 22.0, fontWeight: FontWeight.bold, color: Colors.white),
+          style: const TextStyle(fontSize: 22.0, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         Text(
           label,
-          style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.w400, color: Colors.white),
+          style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.w400, color: Colors.white),
         ),
       ],
     );
   }
 
   Future<void> deletePhoto() async {
-    Uri apiUrl = Uri.parse('http://217.182.70.161:6969/v1/api/users/delete_photo_profile');
+    Uri apiUrl = Uri.parse('https://51.91.109.185:8001//v1/api/users/delete_photo_profile');
     final token = UserSingleton().token;
 
     try {
@@ -305,7 +309,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> changePhoto(File photo) async {
-    Uri apiUrl = Uri.parse('http://217.182.70.161:6969/v1/api/users/change_photo_profile');
+    Uri apiUrl = Uri.parse('https://51.91.109.185:8001//v1/api/users/change_photo_profile');
     final token = UserSingleton().token;
 
     try {
@@ -334,7 +338,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _fetchUserPosts() async {
     final username = userSingleton.username;
-    Uri apiUrl = Uri.parse('http://217.182.70.161:6969/v1/api/users/posts/$username');
+    Uri apiUrl = Uri.parse('https://51.91.109.185:8001//v1/api/users/posts/$username');
     final token = userSingleton.token;
 
     try {
@@ -359,7 +363,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<Map<String, int>> _fetchFollowersFollowing(String userId) async {
-    Uri apiUrl = Uri.parse('http://217.182.70.161:6969/v1/api/users/profile/$userId');
+    Uri apiUrl = Uri.parse('https://51.91.109.185:8001//v1/api/users/profile/$userId');
     final token = userSingleton.token;
 
     try {

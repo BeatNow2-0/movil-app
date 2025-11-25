@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert' as convert;
 
 class SavedScreen extends StatefulWidget {
+  const SavedScreen({super.key});
+
   @override
   _SavedScreen createState() => _SavedScreen();
 }
@@ -23,7 +25,7 @@ class _SavedScreen extends State<SavedScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'Saved Beats',
           style: TextStyle(
             fontWeight: FontWeight.bold,
@@ -34,7 +36,7 @@ class _SavedScreen extends State<SavedScreen> {
         centerTitle: true,
       ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -50,8 +52,8 @@ class _SavedScreen extends State<SavedScreen> {
           builder: (context, snapshot) {
             if (snapshot.hasData) {
               return GridView.builder(
-                padding: EdgeInsets.all(10.0),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                padding: const EdgeInsets.all(10.0),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   mainAxisSpacing: 10.0,
                   crossAxisSpacing: 10.0,
@@ -74,7 +76,7 @@ class _SavedScreen extends State<SavedScreen> {
             }
 
             // Por defecto, muestra un loading spinner.
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           },
         ),
       ),
@@ -82,7 +84,7 @@ class _SavedScreen extends State<SavedScreen> {
   }
 
   Future<List<SavedPost>> getSavedPosts() async {
-    final apiUrl = 'http://217.182.70.161:6969/v1/api/users/saved-posts';
+    const apiUrl = 'https://51.91.109.185:8001//v1/api/users/saved-posts';
     final token = UserSingleton().token;
     final response = await http.get(
       Uri.parse(apiUrl),

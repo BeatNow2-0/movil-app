@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:BeatNow/Screens/AuthScreen/authentication_code_screen.dart';
 import 'package:BeatNow/Screens/AuthScreen/splash_screen.dart';
 import 'package:BeatNow/Screens/HomeScreen/saved_screen.dart';
@@ -7,21 +9,27 @@ import 'package:BeatNow/Screens/SearchScreens/search_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../Screens/AuthScreen/forgot_password_screen.dart';
-import 'auth_controller.dart';
+import './Controllers/auth_controller.dart';
 import '../Screens/AuthScreen/login_screen.dart';
 import '../Screens/AuthScreen/signup_screen.dart';
 import '../Screens/ProfileScreen/profileuser_screen.dart';
 import '../Screens/HomeScreen/home_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'http_overrides.dart';
+
  
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    HttpOverrides.global = MyHttpOverrides();
+
   runApp(MyApp());
 }
  
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
@@ -30,8 +38,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.dark,
         primarySwatch: Colors.deepPurple,
-        textTheme: TextTheme(
-          bodyText2: TextStyle(fontFamily: 'Franklin Gothic Demi'),
+        textTheme: const TextTheme(
+          bodyMedium: TextStyle(fontFamily: 'Franklin Gothic Demi'),
         ),
       ),
       home: HomeScreen(),
@@ -40,7 +48,11 @@ class MyApp extends StatelessWidget {
 }
  
 class HomeScreen extends StatelessWidget {
-  final AuthController _authController = Get.put(AuthController());
+  // FIX: Added 'late' keyword to allow non-constant initialization (Get.put)
+  // in a constant widget context.
+   final AuthController _authController = Get.put(AuthController());
+
+   HomeScreen({super.key});
  
   @override
   Widget build(BuildContext context) {

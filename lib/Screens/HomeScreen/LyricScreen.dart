@@ -10,6 +10,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert' as convert;
 
 class LyricScreen extends StatefulWidget {
+  const LyricScreen({super.key});
+
   @override
   _LyricScreenState createState() => _LyricScreenState();
 }
@@ -30,7 +32,7 @@ class _LyricScreenState extends State<LyricScreen> {
       future: SharedPreferences.getInstance(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator());
         }
         final prefs = snapshot.data!;
         List<String> titles = prefs.getStringList('titles') ?? [];
@@ -38,9 +40,9 @@ class _LyricScreenState extends State<LyricScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
+            const Padding(
               padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 50.0),
+                  EdgeInsets.symmetric(horizontal: 16.0, vertical: 50.0),
               child: Text(
                 'Your Lyrics',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -59,7 +61,7 @@ class _LyricScreenState extends State<LyricScreen> {
                     title: Text(_lyricsList[index]['title']),
                     subtitle: Text(firstTwoLines),
                     trailing: IconButton(
-                      icon: Icon(Icons.delete),
+                      icon: const Icon(Icons.delete),
                       onPressed: () async {
                         
                         deleteLyric(_lyricsList[index]['_id']);
@@ -107,13 +109,13 @@ class _LyricScreenState extends State<LyricScreen> {
                         setState(() {});
                       });
                     },
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
                     child: Icon(
                       Icons.add,
                       color: Color(0xFF8731E4),
                       size: 30,
                     ),
-                    backgroundColor: Colors.transparent,
-                    elevation: 0,
                   ),
                 ),
               ),
@@ -129,7 +131,7 @@ void fetchLyrics() async {
   final token = UserSingleton().token;
 
   final response = await http.get(
-    Uri.parse('http://217.182.70.161:6969/v1/api/users/lyrics'),
+    Uri.parse('https://51.91.109.185:8001/v1/api/users/lyrics'),
     headers: <String, String>{
       'Authorization': 'Bearer $token',
     },
@@ -142,14 +144,14 @@ void fetchLyrics() async {
       _lyricsList.add(data);
     }
   } else {
-    throw Exception('status' + response.statusCode.toString());
+    throw Exception('status${response.statusCode}');
   }
 }
-void deleteLyric(String _LyricId) async {
+void deleteLyric(String LyricId) async {
   final token = UserSingleton().token;
 
   final response = await http.delete(
-    Uri.parse('http://217.182.70.161:6969/v1/api/lyrics/$_LyricId'),
+    Uri.parse('https://51.91.109.185:8001//v1/api/lyrics/$LyricId'),
     headers: <String, String>{
       'Authorization': 'Bearer $token',
     },
@@ -158,7 +160,7 @@ void deleteLyric(String _LyricId) async {
   if (response.statusCode == 200) {
    
   } else {
-    throw Exception('status' + response.statusCode.toString());
+    throw Exception('status${response.statusCode}');
   }
 }
 

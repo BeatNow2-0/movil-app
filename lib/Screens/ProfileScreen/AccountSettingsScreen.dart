@@ -10,19 +10,21 @@ final AuthController _authController = Get.find<AuthController>();
 
 class AccountSettingsScreen extends StatelessWidget {
   final userSingleton = UserSingleton();
+
+  AccountSettingsScreen({super.key});
   void _onSignOutClicked(BuildContext context) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Log Out'),
-          content: Text('Are you sure you want to log out?'),
+          title: const Text('Log Out'),
+          content: const Text('Are you sure you want to log out?'),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
@@ -36,7 +38,7 @@ class AccountSettingsScreen extends StatelessWidget {
                 _authController.changeTab(9); // Cambiar a la pestaña 0
                 Navigator.of(context).pop();
               },
-              child: Text(
+              child: const Text(
                 'Log Out',
                 style: TextStyle(color: Colors.red), // Color rojo
               ),
@@ -58,11 +60,11 @@ class AccountSettingsScreen extends StatelessWidget {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
             return AlertDialog(
-              title: Text('Delete account'),
+              title: const Text('Delete account'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('Enter your password:'),
+                  const Text('Enter your password:'),
                   TextFormField(
                     controller: passwordController,
                     obscureText: obscurePassword,
@@ -88,7 +90,7 @@ class AccountSettingsScreen extends StatelessWidget {
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
-                  child: Text('Cancel'),
+                  child: const Text('Cancel'),
                 ),
                 TextButton(
                   onPressed: () {
@@ -100,7 +102,7 @@ class AccountSettingsScreen extends StatelessWidget {
                     Navigator.of(context).pop();
                     _authController.changeTab(0);
                   },
-                  child: Text(
+                  child: const Text(
                     'Delete Account',
                     style: TextStyle(color: Colors.red), // Color rojo
                   ),
@@ -127,7 +129,7 @@ class AccountSettingsScreen extends StatelessWidget {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
             return AlertDialog(
-              title: Text('Change Password'),
+              title: const Text('Change Password'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -168,7 +170,7 @@ class AccountSettingsScreen extends StatelessWidget {
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
-                  child: Text('Cancel'),
+                  child: const Text('Cancel'),
                 ),
                 TextButton(
                   onPressed: () {
@@ -185,7 +187,7 @@ class AccountSettingsScreen extends StatelessWidget {
                       Navigator.of(context).pop();
                     }
                   },
-                  child: Text('Change Password'),
+                  child: const Text('Change Password'),
                 ),
               ],
             );
@@ -228,14 +230,14 @@ class AccountSettingsScreen extends StatelessWidget {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
             return AlertDialog(
-              title: Text('Change Email Adress'),
+              title: const Text('Change Email Adress'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextFormField(
                     controller: emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: 'New Email Address',
                     ),
                   ),
@@ -264,7 +266,7 @@ class AccountSettingsScreen extends StatelessWidget {
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
-                  child: Text('Cancel'),
+                  child: const Text('Cancel'),
                 ),
                 TextButton(
                   onPressed: () {
@@ -274,7 +276,7 @@ class AccountSettingsScreen extends StatelessWidget {
                     updateEmail(newEmail, password);
                     Navigator.of(context).pop();
                   },
-                  child: Text('Change Email Address'),
+                  child: const Text('Change Email Address'),
                 ),
               ],
             );
@@ -288,16 +290,16 @@ class AccountSettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Account Settings'),
+        title: const Text('Account Settings'),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () {
             _authController.changeTab(4);
           },
         ),
       ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -331,8 +333,8 @@ class AccountSettingsScreen extends StatelessWidget {
               height: 1,
               color: Colors.grey, // Color de la línea divisoria
             ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
+            const Padding(
+              padding: EdgeInsets.all(8.0),
               child: Text(
                 '© BeatNow Development', // Marca registrada
                 textAlign: TextAlign.center,
@@ -376,7 +378,7 @@ class AccountSettingsScreen extends StatelessWidget {
 
 // Implementar api  de update users
 Future<Map<String, dynamic>?> updateEmail(String email, String password) async {
-  final apiUrl = Uri.parse('http://217.182.70.161:6969/v1/api/users/update');
+  final apiUrl = Uri.parse('https://51.91.109.185:8001//v1/api/users/update');
   Map<String, dynamic> body = {
     'full_name': UserSingleton().name,
     'email': email,
@@ -424,7 +426,7 @@ Future<Map<String, dynamic>?> updateEmail(String email, String password) async {
 
 // Implementar api de delete users
 Future<Map<String, dynamic>?> deleteUser() async {
-  final apiUrl = Uri.parse('http://217.182.70.161:6969/v1/api/users/delete');
+  final apiUrl = Uri.parse('https://51.91.109.185:8001//v1/api/users/delete');
   
   String token = UserSingleton().token;
   try {
@@ -465,7 +467,7 @@ Future<Map<String, dynamic>?> deleteUser() async {
 
 // Implementar api de change password
 Future<Map<String, dynamic>?> updatePassword(String newPassword) async {
-  final apiUrl = Uri.parse('http://217.182.70.161:6969/v1/api/users/update');
+  final apiUrl = Uri.parse('https://51.91.109.185:8001//v1/api/users/update');
   Map<String, dynamic> body = {
     'full_name': UserSingleton().name,
     'email': UserSingleton().email,
@@ -513,7 +515,7 @@ Future<Map<String, dynamic>?> updatePassword(String newPassword) async {
 
 Future<Map<String, dynamic>> changePassword(
     String username, String password, String newPassword) async {
-  final apiUrl = Uri.parse('http://217.182.70.161:6969/token');
+  final apiUrl = Uri.parse('https://51.91.109.185:8001//token');
 
   final body = {
     'username': username,
@@ -537,7 +539,7 @@ Future<Map<String, dynamic>> changePassword(
 }
 
 Future<Map<String, dynamic>> dropUser(String password) async {
-  final apiUrl = Uri.parse('http://217.182.70.161:6969/token');
+  final apiUrl = Uri.parse('https://51.91.109.185:8001//token');
 
   final body = {
     'username': UserSingleton().username,

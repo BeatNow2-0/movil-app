@@ -8,6 +8,8 @@ import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:flutter/services.dart';
  
 class CodeConfirmationScreen extends StatefulWidget {
+  const CodeConfirmationScreen({super.key});
+
   @override
   _CodeConfirmationScreenState createState() => _CodeConfirmationScreenState();
 }
@@ -19,26 +21,26 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
   @override
   Widget build(BuildContext context) {
     final ButtonStyle buttonStyle = ElevatedButton.styleFrom(
-      backgroundColor: Color(0xFF3C0F4B),
-      minimumSize: Size(double.infinity, 56),
-      padding: EdgeInsets.symmetric(vertical: 16),
+      backgroundColor: const Color(0xFF3C0F4B),
+      minimumSize: const Size(double.infinity, 56),
+      padding: const EdgeInsets.symmetric(vertical: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12.0),
       ),
-      textStyle: TextStyle(
+      textStyle: const TextStyle(
         fontFamily: 'Franklin Gothic Demi',
         fontSize: 16.0,
       ),
     );
  
     return Scaffold(
-      backgroundColor: Color(0xFF111111),
+      backgroundColor: const Color(0xFF111111),
       appBar: AppBar(
-        backgroundColor: Color(0xFF111111),
+        backgroundColor: const Color(0xFF111111),
         elevation: 0,
         actions: [
           IconButton(
-            icon: Icon(Icons.arrow_back, color: Colors.white),
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () {
               _authController.changeTab(9);
             },
@@ -53,7 +55,7 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                Text(
+                const Text(
                   'Enter Confirmation Code',
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -62,7 +64,7 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
                       color: Colors.white,
                       fontFamily: 'Franklin Gothic Demi'),
                 ),
-                SizedBox(height: 20.0),
+                const SizedBox(height: 20.0),
                 PinCodeTextField(
                   appContext: context,
                   length: 6,
@@ -74,26 +76,26 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
                     borderRadius: BorderRadius.circular(12.0),
                     fieldHeight: 50,
                     fieldWidth: 40,
-                    activeFillColor: Color(0xFF494949),
-                    inactiveFillColor: Color(0xFF494949),
-                    selectedFillColor: Color(0xFF494949),
+                    activeFillColor: const Color(0xFF494949),
+                    inactiveFillColor: const Color(0xFF494949),
+                    selectedFillColor: const Color(0xFF494949),
                     activeColor: Colors.white,
                     inactiveColor: Colors.white70,
                     selectedColor: Colors.white,
                   ),
-                  backgroundColor: Color(0xFF111111),
-                  textStyle: TextStyle(color: Colors.white),
+                  backgroundColor: const Color(0xFF111111),
+                  textStyle: const TextStyle(color: Colors.white),
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   onChanged: (value) {},
                 ),
-                SizedBox(height: 20.0),
+                const SizedBox(height: 20.0),
                 ElevatedButton(
-                  child: Text('Submit'),
                   onPressed: () {
                     _submitCode(_codeController.text, context);
                   },
                   style: buttonStyle,
+                  child: const Text('Submit'),
                 ),
               ],
             ),
@@ -106,21 +108,17 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
   void _submitCode(String code, BuildContext context) async {
     final token = UserSingleton().token;
  
-    if (token != null) {
-      final response = await _sendCodeToApi(token, code);
+    final response = await _sendCodeToApi(token, code);
  
-      if (response['message'] == 'Ok') {
-        _authController.changeTab(3);
-      } else {
-        _showErrorSnackBar('Invalid code', context);
-      }
+    if (response['message'] == 'Ok') {
+      _authController.changeTab(3);
     } else {
-      _showErrorSnackBar('User not found', context);
+      _showErrorSnackBar('Invalid code', context);
     }
-  }
+    }
  
   Future<Map<String, dynamic>> _sendCodeToApi(String token, String code) async {
-    final apiUrl = Uri.parse('http://217.182.70.161:6969/v1/api/mail/confirmation/?code=$code');
+    final apiUrl = Uri.parse('https://51.91.109.185:8001/v1/api/mail/confirmation/?code=$code');
  
     try {
       final response = await http.post(
@@ -149,9 +147,9 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
       SnackBar(
         content: Text(
           message,
-          style: TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white),
         ),
-        backgroundColor: Color(0xFF3C0F4B),
+        backgroundColor: const Color(0xFF3C0F4B),
       ),
     );
   }

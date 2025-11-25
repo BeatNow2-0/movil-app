@@ -33,23 +33,23 @@ class AuthController extends GetxController {
  
   void _login(String username, String password) async {
     final token = await _token(username, password);
-    final AuthController _authController = Get.find<AuthController>();
+    final AuthController authController = Get.find<AuthController>();
     if (token != null) {
       final userInfo = await getUserInfo(token);
       if (userInfo != null && userInfo['is_active'] == false) {
-        _authController.changeTab(10);
+        authController.changeTab(10);
     } else if(userInfo != null && userInfo['is_active'] != false){
-        _authController.changeTab(3);
+        authController.changeTab(3);
     } else {
-        _authController.changeTab(9);
+        authController.changeTab(9);
       }
     } else {
-      _authController.changeTab(9);
+      authController.changeTab(9);
     }
   }
  
   Future<Map<String, dynamic>> getTokenUser(String username, String password) async {
-    final apiUrl = Uri.parse('http://217.182.70.161:6969/token');
+    final apiUrl = Uri.parse('https://51.91.109.185:8001/token');
     final body = {'username': username, 'password': password};
     final response = await http.post(apiUrl, headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: body);
     return json.decode(response.body);
@@ -66,7 +66,7 @@ class AuthController extends GetxController {
   }
  
   Future<Map<String, dynamic>?> getUserInfo(String token) async {
-    final apiUrl = Uri.parse('http://217.182.70.161:6969/v1/api/users/users/me');
+    final apiUrl = Uri.parse('https://51.91.109.185:8001/v1/api/users/users/me');
     try {
       final response = await http.get(apiUrl, headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'});
       if (response.body.isNotEmpty) {
@@ -86,18 +86,18 @@ class AuthController extends GetxController {
     }
   }
   void sendPasswordMail(String email) async {
-    final AuthController _authController = Get.find<AuthController>();
+    final AuthController authController = Get.find<AuthController>();
     final response = await resetPassword(email);
     if (response != null) {
       Get.snackbar('Success', 'Email sent successfully');
-      _authController.changeTab(9);
+      authController.changeTab(9);
     } else {
       Get.snackbar('Error', 'Email not sent');
-      _authController.changeTab(2);
+      authController.changeTab(2);
     }
   }
   Future<Map<String, dynamic>?> resetPassword(String email) async {
-  final apiUrl = Uri.parse('http://127.0.0.1:8000/v1/api/mail/send-password-reset/?mail=$email');
+  final apiUrl = Uri.parse('https://51.91.109.185:8001/v1/api/mail/send-password-reset/?mail=$email');
   try {
     final response = await http.post(
       apiUrl,

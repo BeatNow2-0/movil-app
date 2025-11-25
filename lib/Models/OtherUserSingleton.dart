@@ -4,8 +4,8 @@ class OtherUserSingleton {
   late String _name = '';
   late String _username = '';
   late String _email = '';
- late String _profileImageUrl = 'http://172.203.251.28/beatnow/' + _id + '/photo_profile/photo_profile.png';
- late String _defaultProfileImageUrl = 'http://172.203.251.28/beatnow/default/default_photo.png';
+ late String _profileImageUrl = 'https://51.91.109.185beatnow/$_id/photo_profile/photo_profile.png';
+ late String _defaultProfileImageUrl = 'https://51.91.109.185/beatnow/default/default_photo.png';
   late String _token = '';
   late int _current= 0;
 

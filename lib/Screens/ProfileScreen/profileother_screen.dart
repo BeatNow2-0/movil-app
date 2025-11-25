@@ -12,6 +12,8 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
@@ -25,6 +27,8 @@ class MyApp extends StatelessWidget {
 }
 
 class ProfileOtherScreen extends StatefulWidget {
+  const ProfileOtherScreen({super.key});
+
   @override
   _ProfileOtherScreenState createState() => _ProfileOtherScreenState();
 }
@@ -32,7 +36,7 @@ class ProfileOtherScreen extends StatefulWidget {
 class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
   final AuthController _authController = Get.find<AuthController>();
   final userSingleton = OtherUserSingleton();
-  bool _hasProfileImage = false; // Cambiado a falso inicialmente
+  final bool _hasProfileImage = false; // Cambiado a falso inicialmente
   String? _profileImagePath; // Ruta de la imagen de perfil
   List<dynamic>? _posts; 
   Map<String, int>? _followersFollowing;
@@ -50,7 +54,7 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
   }
 
   Future<void> _fetchUserPosts(String username) async {
-    Uri apiUrl = Uri.parse('http://217.182.70.161:6969/v1/api/users/posts/$username');
+    Uri apiUrl = Uri.parse('https://51.91.109.185:8001//v1/api/users/posts/$username');
     final token = UserSingleton().token;
 
     try {
@@ -75,7 +79,7 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
   }
 
   Future<Map<String, int>> _fetchFollowersFollowing(String userId) async {
-    Uri apiUrl = Uri.parse('http://217.182.70.161:6969/v1/api/users/profile/$userId');
+    Uri apiUrl = Uri.parse('https://51.91.109.185:8001//v1/api/users/profile/$userId');
     final token = UserSingleton().token;
 
     try {
@@ -105,15 +109,15 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             _authController.changeTab(3);
             Get.back(); // or Navigator.pop(context) if not using GetX
           },
         ),
         title: Text(
-          "@" + OtherUserSingleton().username,
-          style: TextStyle(
+          "@${OtherUserSingleton().username}",
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 20,
             color: Colors.white,
@@ -122,7 +126,7 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
         centerTitle: true,
       ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -136,7 +140,7 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
@@ -144,20 +148,20 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
                   child: CircleAvatar(
                     radius: 50,
                     backgroundImage: NetworkImage(
-                      "http://172.203.251.28/beatnow/" + OtherUserSingleton().id + "/photo_profile/photo_profile.png",
+                      "http://172.203.251.28/beatnow/${OtherUserSingleton().id}/photo_profile/photo_profile.png",
                     ),
                   ),
                 ),
-                SizedBox(width: 20),
+                const SizedBox(width: 20),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Row(
                       children: <Widget>[
                         _buildStatColumn('Posts', '${_posts?.length ?? 0}'),
-                        SizedBox(width: 20),
+                        const SizedBox(width: 20),
                         _buildStatColumn('Following', '${_followersFollowing?['following']}'),
-                        SizedBox(width: 20),
+                        const SizedBox(width: 20),
                         _buildStatColumn('Followers', '${_followersFollowing?['followers']}'),
                       ],
                     ),
@@ -165,18 +169,18 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
                 ),
               ],
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.only(left: 30.0),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   OtherUserSingleton().username,
-                  style: TextStyle(fontSize: 18, color: Colors.white),
+                  style: const TextStyle(fontSize: 18, color: Colors.white),
                 ),
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Row(
@@ -188,30 +192,30 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
                         // Acción cuando se presiona el botón "Message"
                       },
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.white),
+                        side: const BorderSide(color: Colors.white),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(5.0),
                         ),
                       ),
-                      child: Text(
+                      child: const Text(
                         'Message',
                         style: TextStyle(color: Colors.white),
                       ),
                     ),
                   ),
-                  SizedBox(width: 10), // Espacio entre los botones
+                  const SizedBox(width: 10), // Espacio entre los botones
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () {
                         // Acción cuando se presiona el botón "Follow"
                       },
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.white),
+                        side: const BorderSide(color: Colors.white),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(5.0),
                         ),
                       ),
-                      child: Text(
+                      child: const Text(
                         
                         'Follow',
                         style: TextStyle(color: Colors.white),
@@ -221,13 +225,13 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
                 ],
               ),
             ),
-            SizedBox(height: 30),
+            const SizedBox(height: 30),
             Expanded(
               child: _posts == null
-                  ? Center(child: CircularProgressIndicator())
+                  ? const Center(child: CircularProgressIndicator())
                   : GridView.builder(
-                      padding: EdgeInsets.all(10.0),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      padding: const EdgeInsets.all(10.0),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 3,
                         mainAxisSpacing: 10.0,
                         crossAxisSpacing: 10.0,
@@ -263,7 +267,7 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
       children: <Widget>[
         Text(
           count,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 22.0,
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -271,7 +275,7 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
         ),
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 16.0,
             fontWeight: FontWeight.w400,
             color: Colors.white,
@@ -281,7 +285,7 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
     );
   }
     Future<int> _isFollowing(String userId) async {
-    Uri apiUrl = Uri.parse('http://217.182.70.161:6969/v1/api/users/profile/$userId');
+    Uri apiUrl = Uri.parse('https://51.91.109.185:8001//v1/api/users/profile/$userId');
     final token = userSingleton.token;
 
     try {

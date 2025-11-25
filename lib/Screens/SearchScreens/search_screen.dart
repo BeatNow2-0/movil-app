@@ -9,6 +9,8 @@ import 'dart:convert' as convert;
 import 'package:shared_preferences/shared_preferences.dart';
  
 class SearchScreen extends StatefulWidget {
+  const SearchScreen({super.key});
+
   @override
   _SearchScreenState createState() => _SearchScreenState();
 }
@@ -41,9 +43,9 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Search'),
+        title: const Text('Search'),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () {
             _authController.changeTab(3);
           },
@@ -52,7 +54,7 @@ class _SearchScreenState extends State<SearchScreen> {
             ? null
             : [
                 IconButton(
-                  icon: Icon(Icons.filter_alt),
+                  icon: const Icon(Icons.filter_alt),
                   onPressed: () {
                     _showFilterPopup(context);
                   },
@@ -68,16 +70,16 @@ class _SearchScreenState extends State<SearchScreen> {
               onSubmitted: (value) {
                 _addToSearchHistory(value);
               },
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Search...',
                 prefixIcon: Icon(Icons.search),
               ),
             ),
-            SizedBox(height: 16.0),
+            const SizedBox(height: 16.0),
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                Text('Searching in: '),
+                const Text('Searching in: '),
                 InkWell(
                   onTap: () {
                     setState(() {
@@ -90,7 +92,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       'Beats',
                       style: TextStyle(
                         fontSize: 16.0,
-                        color: _searchingUsers ? Colors.grey : Color(0xFF4E0566),
+                        color: _searchingUsers ? Colors.grey : const Color(0xFF4E0566),
                         fontWeight: _searchingUsers ? FontWeight.normal : FontWeight.bold,
                       ),
                     ),
@@ -108,7 +110,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       'Users',
                       style: TextStyle(
                         fontSize: 16.0,
-                        color: _searchingUsers ? Color(0xFF4E0566) : Colors.grey,
+                        color: _searchingUsers ? const Color(0xFF4E0566) : Colors.grey,
                         fontWeight: _searchingUsers ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
@@ -116,28 +118,28 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               ],
             ),
-            SizedBox(height: 16.0),
+            const SizedBox(height: 16.0),
             if (_searchingUsers) ...[
-              Text(
+              const Text(
                 'User Search Results',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16.0,
                 ),
               ),
-              SizedBox(height: 8.0),
+              const SizedBox(height: 8.0),
               Expanded(
                 child: _buildUserSearchReadults(),
               ),
-              SizedBox(height: 16.0),
-              Text(
+              const SizedBox(height: 16.0),
+              const Text(
                 'Search History',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16.0,
                 ),
               ),
-              SizedBox(height: 8.0),
+              const SizedBox(height: 8.0),
               Expanded(
                 child: _buildSearchHistory(),
               ),
@@ -161,7 +163,7 @@ class _SearchScreenState extends State<SearchScreen> {
     return ListTile(
       title: Text(term),
       trailing: IconButton(
-        icon: Icon(Icons.clear),
+        icon: const Icon(Icons.clear),
         onPressed: () {
           _removeFromSearchHistory(term);
         },
@@ -201,7 +203,7 @@ class _SearchScreenState extends State<SearchScreen> {
  
   Widget _buildUserSearchReadults() {
   if (_userSearchResults.isEmpty) {
-    return Text('No se han encontrado resultados.');
+    return const Text('No se han encontrado resultados.');
   }
   return ListView.builder(
     itemCount: _userSearchResults.length,
@@ -255,12 +257,12 @@ class _SearchScreenState extends State<SearchScreen> {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
             return AlertDialog(
-              title: Text('Advanced Beat Filters'),
+              title: const Text('Advanced Beat Filters'),
               content: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Genre:'),
+                    const Text('Genre:'),
                     DropdownButton<String>(
                       value: selectedGenre,
                       onChanged: (String? newValue) {
@@ -278,7 +280,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         );
                       }).toList(),
                     ),
-                    SizedBox(height: 16.0),
+                    const SizedBox(height: 16.0),
                     Text('Price: \$${selectedPrice.toStringAsFixed(2)}'),
                     Slider(
                       value: selectedPrice,
@@ -291,12 +293,12 @@ class _SearchScreenState extends State<SearchScreen> {
                         });
                       },
                     ),
-                    SizedBox(height: 16.0),
+                    const SizedBox(height: 16.0),
                     Row(
                       children: [
-                        Text('BPM: '),
+                        const Text('BPM: '),
                         IconButton(
-                          icon: Icon(Icons.remove),
+                          icon: const Icon(Icons.remove),
                           onPressed: () {
                             setState(() {
                               if (selectedBpm > 0) {
@@ -307,7 +309,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                         Text('$selectedBpm'),
                         IconButton(
-                          icon: Icon(Icons.add),
+                          icon: const Icon(Icons.add),
                           onPressed: () {
                             setState(() {
                               if (selectedBpm < 300) {
@@ -318,8 +320,8 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                       ],
                     ),
-                    SizedBox(height: 16.0),
-                    Text('Instruments:'),
+                    const SizedBox(height: 16.0),
+                    const Text('Instruments:'),
                     DropdownButton<String>(
                       value: selectedInstrument,
                       onChanged: (String? newValue) {
@@ -346,18 +348,18 @@ class _SearchScreenState extends State<SearchScreen> {
                     Navigator.pop(context);
                   },
                   style: ButtonStyle(
-                    foregroundColor: MaterialStateProperty.all<Color>(Colors.red),
+                    foregroundColor: WidgetStateProperty.all<Color>(Colors.red),
                   ),
-                  child: Text('Cancel'),
+                  child: const Text('Cancel'),
                 ),
                 ElevatedButton(
                   onPressed: () {
                     Navigator.pop(context);
                   },
                   style: ButtonStyle(
-                    backgroundColor: MaterialStateProperty.all<Color>(Color(0xFF4E0566))
+                    backgroundColor: WidgetStateProperty.all<Color>(const Color(0xFF4E0566))
                   ),
-                  child: Text('Apply'),
+                  child: const Text('Apply'),
                 ),
               ],
             );
@@ -370,7 +372,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Future<List<dynamic>> _searchUsers(String query) async {
     final token = UserSingleton().token;
     final response = await http.get(
-      Uri.parse('http://217.182.70.161:6969/v1/api/search/user?username=$query'),
+      Uri.parse('https://51.91.109.185:8001//v1/api/search/user?username=$query'),
       headers: {
         'Authorization': 'Bearer $token',
       },
@@ -390,7 +392,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Future<List<dynamic>> _searchFilter(String query) async {
     final token = UserSingleton().token;
     final response = await http.get(
-      Uri.parse('http://217.182.70.161:6969/v1/api/search/user?username=$query'),
+      Uri.parse('https://51.91.109.185:8001//v1/api/search/user?username=$query'),
       headers: {
         'Authorization': 'Bearer $token',
       },

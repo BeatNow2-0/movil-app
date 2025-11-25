@@ -7,28 +7,30 @@ import 'package:regexed_validator/regexed_validator.dart';
 class ForgotPasswordScreen extends StatelessWidget {
   final AuthController _authController = Get.find<AuthController>(); // Obtener instancia del controlador AuthController
   final TextEditingController _emailController = TextEditingController();
+
+  ForgotPasswordScreen({super.key});
  
   @override
   Widget build(BuildContext context) {
     final ButtonStyle buttonStyle = ElevatedButton.styleFrom(
-      backgroundColor: Color(0xFF3C0F4B),
-      minimumSize: Size(double.infinity, 56),
-      padding: EdgeInsets.symmetric(vertical: 16),
+      backgroundColor: const Color(0xFF3C0F4B),
+      minimumSize: const Size(double.infinity, 56),
+      padding: const EdgeInsets.symmetric(vertical: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12.0),
       ),
-      textStyle: TextStyle(
+      textStyle: const TextStyle(
         fontFamily: 'Franklin Gothic Demi',
         fontSize: 16.0,
       ),
     );
  
     return Scaffold(
-      backgroundColor: Color(0xFF111111),
+      backgroundColor: const Color(0xFF111111),
       appBar: AppBar(
-        backgroundColor: Color(0xFF111111),
+        backgroundColor: const Color(0xFF111111),
         elevation: 0,
-        title: Text(
+        title: const Text(
           'Forgot Password?',
           style: TextStyle(
             fontFamily: 'Franklin Gothic Demi',
@@ -44,7 +46,7 @@ class ForgotPasswordScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.start, // Alinea los elementos al principio
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            Center(
+            const Center(
               child: Text(
                 'Enter your email',
                 style: TextStyle(
@@ -54,15 +56,15 @@ class ForgotPasswordScreen extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(height: 20.0),
+            const SizedBox(height: 20.0),
             TextField(
-              style: TextStyle(color: Colors.white),
+              style: const TextStyle(color: Colors.white),
               controller: _emailController,
               decoration: InputDecoration(
                 hintText: 'Email',
-                hintStyle: TextStyle(color: Colors.white70),
+                hintStyle: const TextStyle(color: Colors.white70),
                 filled: true,
-                fillColor: Color(0xFF494949),
+                fillColor: const Color(0xFF494949),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.0),
                   borderSide: BorderSide.none,
@@ -70,8 +72,8 @@ class ForgotPasswordScreen extends StatelessWidget {
               ),
               keyboardType: TextInputType.emailAddress,
             ),
-            SizedBox(height: 8.0),
-            Center(
+            const SizedBox(height: 8.0),
+            const Center(
               child: Text(
                 'An email will be sent to your account.',
                 style: TextStyle(
@@ -81,7 +83,7 @@ class ForgotPasswordScreen extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(height: 20.0),
+            const SizedBox(height: 20.0),
             ElevatedButton(
               onPressed: () {
                 // Get the email from the text field
@@ -96,7 +98,7 @@ class ForgotPasswordScreen extends StatelessWidget {
                 } else {
                   // Mostrar un mensaje de error si el correo electrónico no es válido
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
+                    const SnackBar(
                       content: Text(
                         'Please enter a valid email address.',
                         style: TextStyle(color: Colors.white),
@@ -107,18 +109,18 @@ class ForgotPasswordScreen extends StatelessWidget {
                 }
               },
               style: buttonStyle,
-              child: Text('Send'),
+              child: const Text('Send'),
             ),
-            SizedBox(height: 20.0),
+            const SizedBox(height: 20.0),
             Center(
               child: Text.rich(
                 TextSpan(
                   text: 'Go to ',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
                   children: <TextSpan>[
                     TextSpan(
                       text: 'Sign In',
-                      style: TextStyle(
+                      style: const TextStyle(
                         decoration: TextDecoration.underline,
                         color: Color(0xFF4E0566),
                       ),

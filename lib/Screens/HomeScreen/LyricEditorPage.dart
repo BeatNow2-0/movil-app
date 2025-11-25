@@ -10,8 +10,8 @@ class LyricEditorPage extends StatefulWidget {
   final int? index;
   final String lyricId;
   final bool isEditing;
-  LyricEditorPage(
-      {required this.title,
+  const LyricEditorPage(
+      {super.key, required this.title,
       required this.lyric,
       this.index,
       this.isEditing = false,
@@ -106,7 +106,7 @@ class _LyricEditorPageState extends State<LyricEditorPage> {
   }
 
   Future<void> saveLyric() async {
-    String apiUrl = "http://217.182.70.161:6969/v1/api/lyrics/";
+    String apiUrl = "https://51.91.109.185:8001//v1/api/lyrics/";
     final token = UserSingleton().token; // get the user token
 
     final response = await http.post(
@@ -124,7 +124,7 @@ class _LyricEditorPageState extends State<LyricEditorPage> {
     );
 
     if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text("Lyric saved!"),
         duration: Duration(seconds: 2),
       ));
@@ -136,7 +136,7 @@ class _LyricEditorPageState extends State<LyricEditorPage> {
   }
 
   Future<void> updateLyric(String PostId) async {
-    String apiUrl = "http://217.182.70.161:6969/v1/api/lyrics/$PostId";
+    String apiUrl = "https://51.91.109.185:8001//v1/api/lyrics/$PostId";
     final token = UserSingleton().token; // get the user token
 
     final response = await http.put(
@@ -154,7 +154,7 @@ class _LyricEditorPageState extends State<LyricEditorPage> {
     );
 
     if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text("Lyric Updated Succesfully!"),
         duration: Duration(seconds: 2),
       ));
@@ -169,10 +169,10 @@ class _LyricEditorPageState extends State<LyricEditorPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Lyric Editor'),
+        title: const Text('Lyric Editor'),
         actions: [
           IconButton(
-            icon: Icon(Icons.save),
+            icon: const Icon(Icons.save),
             onPressed: () {
               if (widget.isEditing) {
                 updateLyric(widget.lyricId);
@@ -195,12 +195,12 @@ class _LyricEditorPageState extends State<LyricEditorPage> {
             Container(
               alignment: Alignment.center,
               child: TextFormField(
-                style: TextStyle(
+                style: const TextStyle(
                     fontSize: 20.0,
                     color: Colors.white,
                     fontWeight: FontWeight.bold),
                 controller: _titleController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: 'Title',
                   border: InputBorder.none,
                   isDense: true,
@@ -212,11 +212,11 @@ class _LyricEditorPageState extends State<LyricEditorPage> {
                 textAlign: TextAlign.center,
               ),
             ),
-            SizedBox(height: 14.0),
+            const SizedBox(height: 14.0),
             Expanded(
               child: TextFormField(
                 controller: _lyricController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: 'Type or speak your lyrics here...',
                   border: InputBorder.none,
                   isDense: true,

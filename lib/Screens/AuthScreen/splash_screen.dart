@@ -7,7 +7,7 @@ class SplashScreen extends StatelessWidget {
   final AuthController _authController = Get.put(AuthController());
  
  
-  SplashScreen(int i) : param = i;
+  SplashScreen(int i, {super.key}) : param = i;
  
   @override
   Widget build(BuildContext context) {
@@ -16,7 +16,7 @@ class SplashScreen extends StatelessWidget {
     }else if (param == 2) {
       _authController.sendPasswordMail(_authController.email.value);
     }
-    return Scaffold(
+    return const Scaffold(
       backgroundColor: Color(0xFF121212),
       body: Center(
         child: CircularProgressIndicator(
