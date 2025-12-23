@@ -38,7 +38,7 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
   final userSingleton = OtherUserSingleton();
   final bool _hasProfileImage = false; // Cambiado a falso inicialmente
   String? _profileImagePath; // Ruta de la imagen de perfil
-  List<dynamic>? _posts; 
+  List<dynamic>? _posts;
   Map<String, int>? _followersFollowing;
 
   @override
@@ -49,12 +49,15 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
 
   Future<void> _initializeProfileData() async {
     await _fetchUserPosts(OtherUserSingleton().username);
-    _followersFollowing = await _fetchFollowersFollowing(OtherUserSingleton().id);
-    setState(() {}); // Asegúrate de actualizar la interfaz de usuario después de cargar los datos
+    _followersFollowing =
+        await _fetchFollowersFollowing(OtherUserSingleton().id);
+    setState(
+        () {}); // Asegúrate de actualizar la interfaz de usuario después de cargar los datos
   }
 
   Future<void> _fetchUserPosts(String username) async {
-    Uri apiUrl = Uri.parse('https://51.91.109.185:8001//v1/api/users/posts/$username');
+    Uri apiUrl =
+        Uri.parse('https://api.beatnow.app/v1/api/users/posts/$username');
     final token = UserSingleton().token;
 
     try {
@@ -66,7 +69,8 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
       );
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
-        print('Response JSON: $jsonResponse'); // Debugging line to print the JSON response
+        print(
+            'Response JSON: $jsonResponse'); // Debugging line to print the JSON response
         setState(() {
           _posts = jsonResponse;
         });
@@ -79,7 +83,8 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
   }
 
   Future<Map<String, int>> _fetchFollowersFollowing(String userId) async {
-    Uri apiUrl = Uri.parse('https://51.91.109.185:8001//v1/api/users/profile/$userId');
+    Uri apiUrl =
+        Uri.parse('https://api.beatnow.app/v1/api/users/profile/$userId');
     final token = UserSingleton().token;
 
     try {
@@ -100,7 +105,10 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
       }
     } catch (error) {
       print('Error fetching followers and following: $error');
-      return {'followers': 0, 'following': 0}; // En caso de error, retorna valores predeterminados
+      return {
+        'followers': 0,
+        'following': 0
+      }; // En caso de error, retorna valores predeterminados
     }
   }
 
@@ -148,7 +156,7 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
                   child: CircleAvatar(
                     radius: 50,
                     backgroundImage: NetworkImage(
-                      "http://172.203.251.28/beatnow/${OtherUserSingleton().id}/photo_profile/photo_profile.png",
+                      "https://res.beatnow.app/beatnow/${OtherUserSingleton().id}/photo_profile/photo_profile.png",
                     ),
                   ),
                 ),
@@ -160,9 +168,11 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
                       children: <Widget>[
                         _buildStatColumn('Posts', '${_posts?.length ?? 0}'),
                         const SizedBox(width: 20),
-                        _buildStatColumn('Following', '${_followersFollowing?['following']}'),
+                        _buildStatColumn('Following',
+                            '${_followersFollowing?['following']}'),
                         const SizedBox(width: 20),
-                        _buildStatColumn('Followers', '${_followersFollowing?['followers']}'),
+                        _buildStatColumn('Followers',
+                            '${_followersFollowing?['followers']}'),
                       ],
                     ),
                   ],
@@ -216,7 +226,6 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
                         ),
                       ),
                       child: const Text(
-                        
                         'Follow',
                         style: TextStyle(color: Colors.white),
                       ),
@@ -231,7 +240,8 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
                   ? const Center(child: CircularProgressIndicator())
                   : GridView.builder(
                       padding: const EdgeInsets.all(10.0),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 3,
                         mainAxisSpacing: 10.0,
                         crossAxisSpacing: 10.0,
@@ -240,12 +250,13 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
                       itemCount: _posts!.length,
                       itemBuilder: (context, index) {
                         final post = _posts![index];
-                        print('Post: $post'); // Debugging line to print each post
+                        print(
+                            'Post: $post'); // Debugging line to print each post
                         return Container(
                           decoration: BoxDecoration(
                             image: DecorationImage(
                               image: NetworkImage(
-                                'http://172.203.251.28/beatnow/${post['user_id']}/posts/${post['_id']}/caratula.jpg',
+                                'https://res.beatnow.app/beatnow/${post['user_id']}/posts/${post['_id']}/caratula.jpg',
                               ),
                               fit: BoxFit.cover,
                             ),
@@ -284,8 +295,10 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
       ],
     );
   }
-    Future<int> _isFollowing(String userId) async {
-    Uri apiUrl = Uri.parse('https://51.91.109.185:8001//v1/api/users/profile/$userId');
+
+  Future<int> _isFollowing(String userId) async {
+    Uri apiUrl =
+        Uri.parse('https://api.beatnow.app/v1/api/users/profile/$userId');
     final token = userSingleton.token;
 
     try {
@@ -297,13 +310,13 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
       );
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
-         return jsonResponse['is_following'];
+        return jsonResponse['is_following'];
       } else {
         throw Exception('Failed to load followers and following');
       }
     } catch (error) {
       print('Error fetching followers and following: $error');
-       return 0; // En caso de error, retorna valores predeterminados
+      return 0; // En caso de error, retorna valores predeterminados
     }
   }
 }

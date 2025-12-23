@@ -18,15 +18,14 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'http_overrides.dart';
 
- 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-    HttpOverrides.global = MyHttpOverrides();
+  HttpOverrides.global = MyHttpOverrides();
 
   runApp(MyApp());
 }
- 
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -46,14 +45,14 @@ class MyApp extends StatelessWidget {
     );
   }
 }
- 
+
 class HomeScreen extends StatelessWidget {
   // FIX: Added 'late' keyword to allow non-constant initialization (Get.put)
   // in a constant widget context.
-   final AuthController _authController = Get.put(AuthController());
+  final AuthController _authController = Get.put(AuthController());
 
-   HomeScreen({super.key});
- 
+  HomeScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Obx(() {

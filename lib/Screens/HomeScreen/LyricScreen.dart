@@ -41,8 +41,7 @@ class _LyricScreenState extends State<LyricScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Padding(
-              padding:
-                  EdgeInsets.symmetric(horizontal: 16.0, vertical: 50.0),
+              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 50.0),
               child: Text(
                 'Your Lyrics',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -63,12 +62,10 @@ class _LyricScreenState extends State<LyricScreen> {
                     trailing: IconButton(
                       icon: const Icon(Icons.delete),
                       onPressed: () async {
-                        
                         deleteLyric(_lyricsList[index]['_id']);
                         setState(() {
                           _lyricsList.removeAt(index);
                         });
-
                       },
                     ),
                     onTap: () {
@@ -104,7 +101,10 @@ class _LyricScreenState extends State<LyricScreen> {
                         context,
                         MaterialPageRoute(
                             builder: (context) => LyricEditorPage(
-                                title: "", lyric: "", index: null, isEditing: false)),
+                                title: "",
+                                lyric: "",
+                                index: null,
+                                isEditing: false)),
                       ).then((_) {
                         setState(() {});
                       });
@@ -131,7 +131,7 @@ void fetchLyrics() async {
   final token = UserSingleton().token;
 
   final response = await http.get(
-    Uri.parse('https://51.91.109.185:8001/v1/api/users/lyrics'),
+    Uri.parse('https://api.beatnow.app/v1/api/users/lyrics'),
     headers: <String, String>{
       'Authorization': 'Bearer $token',
     },
@@ -147,20 +147,19 @@ void fetchLyrics() async {
     throw Exception('status${response.statusCode}');
   }
 }
+
 void deleteLyric(String LyricId) async {
   final token = UserSingleton().token;
 
   final response = await http.delete(
-    Uri.parse('https://51.91.109.185:8001//v1/api/lyrics/$LyricId'),
+    Uri.parse('https://api.beatnow.app/v1/api/lyrics/$LyricId'),
     headers: <String, String>{
       'Authorization': 'Bearer $token',
     },
   );
 
   if (response.statusCode == 200) {
-   
   } else {
     throw Exception('status${response.statusCode}');
   }
 }
-

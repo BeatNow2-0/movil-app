@@ -378,7 +378,7 @@ class AccountSettingsScreen extends StatelessWidget {
 
 // Implementar api  de update users
 Future<Map<String, dynamic>?> updateEmail(String email, String password) async {
-  final apiUrl = Uri.parse('https://51.91.109.185:8001//v1/api/users/update');
+  final apiUrl = Uri.parse('https://api.beatnow.app/v1/api/users/update');
   Map<String, dynamic> body = {
     'full_name': UserSingleton().name,
     'email': email,
@@ -426,8 +426,8 @@ Future<Map<String, dynamic>?> updateEmail(String email, String password) async {
 
 // Implementar api de delete users
 Future<Map<String, dynamic>?> deleteUser() async {
-  final apiUrl = Uri.parse('https://51.91.109.185:8001//v1/api/users/delete');
-  
+  final apiUrl = Uri.parse('https://api.beatnow.app/v1/api/users/delete');
+
   String token = UserSingleton().token;
   try {
     final response = await http.delete(
@@ -467,7 +467,7 @@ Future<Map<String, dynamic>?> deleteUser() async {
 
 // Implementar api de change password
 Future<Map<String, dynamic>?> updatePassword(String newPassword) async {
-  final apiUrl = Uri.parse('https://51.91.109.185:8001//v1/api/users/update');
+  final apiUrl = Uri.parse('https://api.beatnow.app/v1/api/users/update');
   Map<String, dynamic> body = {
     'full_name': UserSingleton().name,
     'email': UserSingleton().email,
@@ -515,7 +515,7 @@ Future<Map<String, dynamic>?> updatePassword(String newPassword) async {
 
 Future<Map<String, dynamic>> changePassword(
     String username, String password, String newPassword) async {
-  final apiUrl = Uri.parse('https://51.91.109.185:8001//token');
+  final apiUrl = Uri.parse('https://api.beatnow.app//token');
 
   final body = {
     'username': username,
@@ -539,7 +539,7 @@ Future<Map<String, dynamic>> changePassword(
 }
 
 Future<Map<String, dynamic>> dropUser(String password) async {
-  final apiUrl = Uri.parse('https://51.91.109.185:8001//token');
+  final apiUrl = Uri.parse('https://api.beatnow.app//token');
 
   final body = {
     'username': UserSingleton().username,

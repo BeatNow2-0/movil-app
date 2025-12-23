@@ -11,7 +11,8 @@ class LyricEditorPage extends StatefulWidget {
   final String lyricId;
   final bool isEditing;
   const LyricEditorPage(
-      {super.key, required this.title,
+      {super.key,
+      required this.title,
       required this.lyric,
       this.index,
       this.isEditing = false,
@@ -106,7 +107,7 @@ class _LyricEditorPageState extends State<LyricEditorPage> {
   }
 
   Future<void> saveLyric() async {
-    String apiUrl = "https://51.91.109.185:8001//v1/api/lyrics/";
+    String apiUrl = "https://api.beatnow.app/v1/api/lyrics/";
     final token = UserSingleton().token; // get the user token
 
     final response = await http.post(
@@ -136,7 +137,7 @@ class _LyricEditorPageState extends State<LyricEditorPage> {
   }
 
   Future<void> updateLyric(String PostId) async {
-    String apiUrl = "https://51.91.109.185:8001//v1/api/lyrics/$PostId";
+    String apiUrl = "https://api.beatnow.app/v1/api/lyrics/$PostId";
     final token = UserSingleton().token; // get the user token
 
     final response = await http.put(
@@ -176,7 +177,6 @@ class _LyricEditorPageState extends State<LyricEditorPage> {
             onPressed: () {
               if (widget.isEditing) {
                 updateLyric(widget.lyricId);
-                
               } else {
                 saveLyric();
               }

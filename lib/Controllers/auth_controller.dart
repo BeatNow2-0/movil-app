@@ -3,34 +3,34 @@ import 'package:http/http.dart' as http;
 import 'package:BeatNow/Models/UserSingleton.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
- 
+
 class AuthController extends GetxController {
   var selectedIndex = 0.obs;
   var isLoading = true.obs;
   var email = ''.obs;
- 
+
   @override
   void onInit() {
     checkLogin();
     super.onInit();
   }
- 
+
   void changeTab(int index) {
     selectedIndex.value = index;
   }
- 
- 
+
   void checkLogin() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     if (prefs.getString('username') != null) {
-      _login(prefs.getString('username') ?? '', prefs.getString('password') ?? '');
+      _login(
+          prefs.getString('username') ?? '', prefs.getString('password') ?? '');
     } else {
       selectedIndex.value = 9;
       isLoading.value = false;
     }
     isLoading.value = false;
   }
- 
+
   void _login(String username, String password) async {
     final token = await _token(username, password);
     final AuthController authController = Get.find<AuthController>();
@@ -38,23 +38,26 @@ class AuthController extends GetxController {
       final userInfo = await getUserInfo(token);
       if (userInfo != null && userInfo['is_active'] == false) {
         authController.changeTab(10);
-    } else if(userInfo != null && userInfo['is_active'] != false){
+      } else if (userInfo != null && userInfo['is_active'] != false) {
         authController.changeTab(3);
-    } else {
+      } else {
         authController.changeTab(9);
       }
     } else {
       authController.changeTab(9);
     }
   }
- 
-  Future<Map<String, dynamic>> getTokenUser(String username, String password) async {
-    final apiUrl = Uri.parse('https://51.91.109.185:8001/token');
+
+  Future<Map<String, dynamic>> getTokenUser(
+      String username, String password) async {
+    final apiUrl = Uri.parse('https://api.beatnow.app/token');
     final body = {'username': username, 'password': password};
-    final response = await http.post(apiUrl, headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: body);
+    final response = await http.post(apiUrl,
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: body);
     return json.decode(response.body);
   }
- 
+
   Future<String?> _token(String username, String password) async {
     final response = await getTokenUser(username, password);
     if (response["access_token"] != null) {
@@ -64,11 +67,14 @@ class AuthController extends GetxController {
       return null;
     }
   }
- 
+
   Future<Map<String, dynamic>?> getUserInfo(String token) async {
-    final apiUrl = Uri.parse('https://51.91.109.185:8001/v1/api/users/users/me');
+    final apiUrl = Uri.parse('https://api.beatnow.app/v1/api/users/users/me');
     try {
-      final response = await http.get(apiUrl, headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'});
+      final response = await http.get(apiUrl, headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json'
+      });
       if (response.body.isNotEmpty) {
         final jsonResponse = jsonDecode(response.body);
         UserSingleton().id = jsonResponse['id'];
@@ -85,6 +91,7 @@ class AuthController extends GetxController {
       return null;
     }
   }
+
   void sendPasswordMail(String email) async {
     final AuthController authController = Get.find<AuthController>();
     final response = await resetPassword(email);
@@ -96,24 +103,25 @@ class AuthController extends GetxController {
       authController.changeTab(2);
     }
   }
+
   Future<Map<String, dynamic>?> resetPassword(String email) async {
-  final apiUrl = Uri.parse('https://51.91.109.185:8001/v1/api/mail/send-password-reset/?mail=$email');
-  try {
-    final response = await http.post(
-      apiUrl,
-      headers: {'accept': 'application/json'},
-    );
-    if (response.statusCode == 200) {
-      final jsonResponse = jsonDecode(response.body);
-      return jsonResponse;
-    } else {
-      print('Request failed with status: ${response.statusCode}');
+    final apiUrl = Uri.parse(
+        'https://api.beatnow.app/v1/api/mail/send-password-reset/?mail=$email');
+    try {
+      final response = await http.post(
+        apiUrl,
+        headers: {'accept': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        return jsonResponse;
+      } else {
+        print('Request failed with status: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Error: $e');
       return null;
     }
-  } catch (e) {
-    print('Error: $e');
-    return null;
   }
-}
- 
 }

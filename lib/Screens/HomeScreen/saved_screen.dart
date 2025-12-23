@@ -64,7 +64,8 @@ class _SavedScreen extends State<SavedScreen> {
                   return Container(
                     decoration: BoxDecoration(
                       image: DecorationImage(
-                        image: NetworkImage('http://172.203.251.28/beatnow/${snapshot.data![index].userId}/posts/${snapshot.data![index].postId}/caratula.jpg'),
+                        image: NetworkImage(
+                            'https://res.beatnow.app/beatnow/${snapshot.data![index].userId}/posts/${snapshot.data![index].postId}/caratula.jpg'),
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -84,7 +85,7 @@ class _SavedScreen extends State<SavedScreen> {
   }
 
   Future<List<SavedPost>> getSavedPosts() async {
-    const apiUrl = 'https://51.91.109.185:8001//v1/api/users/saved-posts';
+    const apiUrl = 'https://api.beatnow.app/v1/api/users/saved-posts';
     final token = UserSingleton().token;
     final response = await http.get(
       Uri.parse(apiUrl),

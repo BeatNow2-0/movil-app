@@ -6,18 +6,18 @@ import 'package:http/http.dart' as http;
 import 'package:BeatNow/Controllers/auth_controller.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:flutter/services.dart';
- 
+
 class CodeConfirmationScreen extends StatefulWidget {
   const CodeConfirmationScreen({super.key});
 
   @override
   _CodeConfirmationScreenState createState() => _CodeConfirmationScreenState();
 }
- 
+
 class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
   final AuthController _authController = Get.find<AuthController>();
   final TextEditingController _codeController = TextEditingController();
- 
+
   @override
   Widget build(BuildContext context) {
     final ButtonStyle buttonStyle = ElevatedButton.styleFrom(
@@ -32,7 +32,7 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
         fontSize: 16.0,
       ),
     );
- 
+
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
       appBar: AppBar(
@@ -104,22 +104,23 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
       ),
     );
   }
- 
+
   void _submitCode(String code, BuildContext context) async {
     final token = UserSingleton().token;
- 
+
     final response = await _sendCodeToApi(token, code);
- 
+
     if (response['message'] == 'Ok') {
       _authController.changeTab(3);
     } else {
       _showErrorSnackBar('Invalid code', context);
     }
-    }
- 
+  }
+
   Future<Map<String, dynamic>> _sendCodeToApi(String token, String code) async {
-    final apiUrl = Uri.parse('https://51.91.109.185:8001/v1/api/mail/confirmation/?code=$code');
- 
+    final apiUrl = Uri.parse(
+        'https://api.beatnow.app/v1/api/mail/confirmation/?code=$code');
+
     try {
       final response = await http.post(
         apiUrl,
@@ -130,7 +131,7 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
         },
         body: '',
       );
- 
+
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
@@ -141,7 +142,7 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
       return {'message': 'Error'};
     }
   }
- 
+
   void _showErrorSnackBar(String message, BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

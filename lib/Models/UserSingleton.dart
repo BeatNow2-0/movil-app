@@ -4,17 +4,19 @@ class UserSingleton {
   late String _name = '';
   late String _username = '';
   late String _email = '';
- late String _profileImageUrl = 'https://51.91.109.185/beatnow/$_id/photo_profile/photo_profile.png';
- late String _defaultProfileImageUrl = 'https://51.91.109.185/beatnow/default/default_photo.png';
+  late String _profileImageUrl =
+      'https://res.beatnow.app/beatnow/$_id/photo_profile/photo_profile.png';
+  late String _defaultProfileImageUrl =
+      'https://res.beatnow.app/beatnow/default/default_photo.png';
   late String _token = '';
-  late int _current= 0;
-late bool _isActive = false;
+  late int _current = 0;
+  late bool _isActive = false;
   factory UserSingleton() {
     return _instance;
   }
- 
+
   UserSingleton._internal();
- 
+
   String get name => _name;
   String get username => _username;
   String get email => _email;
@@ -24,39 +26,53 @@ late bool _isActive = false;
   String get id => _id;
   int get current => _current;
   bool get isActive => _isActive;
- 
+
   set id(String value) {
     _id = value;
   }
+
   set name(String value) {
     _name = value;
   }
- 
+
   set username(String value) {
     _username = value;
   }
- 
+
   set email(String value) {
     _email = value;
   }
- 
+
   set profileImageUrl(String value) {
     _profileImageUrl = value;
   }
- 
+
   set defaultProfileImageUrl(String value) {
     _defaultProfileImageUrl = value;
   }
+
   set token(String value) {
     _token = value;
   }
+
   set current(int value) {
     _current = value;
   }
-  set isActive(bool value) { // Nuevo setter
+
+  set isActive(bool value) {
+    // Nuevo setter
     _isActive = value;
   }
- 
-  List<String> get user => [_id, _name, _username, _email, _profileImageUrl, _defaultProfileImageUrl, _token, _current.toString(), isActive.toString()];
+
+  List<String> get user => [
+        _id,
+        _name,
+        _username,
+        _email,
+        _profileImageUrl,
+        _defaultProfileImageUrl,
+        _token,
+        _current.toString(),
+        isActive.toString()
+      ];
 }
- 

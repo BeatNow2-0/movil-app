@@ -40,7 +40,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _hasProfileImage = false; // Cambiado a falso inicialmente
   String? _profileImagePath; // Ruta de la imagen de perfil
   List<dynamic>? _posts;
-  Map<String, int>? _followersFollowing; // Cambiado a Map<String, int> para almacenar seguidores y seguidos_
+  Map<String, int>?
+      _followersFollowing; // Cambiado a Map<String, int> para almacenar seguidores y seguidos_
 
   @override
   void initState() {
@@ -51,7 +52,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _initializeProfileData() async {
     await _fetchUserPosts();
     _followersFollowing = await _fetchFollowersFollowing(UserSingleton().id);
-    setState(() {}); // Asegúrate de actualizar la interfaz de usuario después de cargar los datos
+    setState(
+        () {}); // Asegúrate de actualizar la interfaz de usuario después de cargar los datos
   }
 
   void _onProfileImageClicked(BuildContext context) {
@@ -67,9 +69,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 title: const Text('Take Photo'),
                 onTap: () async {
                   Navigator.pop(context); // Close the bottom sheet
-                  final pickedFile = await ImagePicker().pickImage(source: ImageSource.camera);
+                  final pickedFile =
+                      await ImagePicker().pickImage(source: ImageSource.camera);
                   if (pickedFile != null) {
-                    File imageFile = File(pickedFile.path); // Convierte XFile a File aquí
+                    File imageFile =
+                        File(pickedFile.path); // Convierte XFile a File aquí
                     changePhoto(imageFile);
                   }
                 },
@@ -80,10 +84,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onTap: () async {
                   Navigator.pop(context); // Cierra la hoja inferior
                   final ImagePicker picker = ImagePicker();
-                  final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                  final XFile? pickedFile =
+                      await picker.pickImage(source: ImageSource.gallery);
                   if (pickedFile != null) {
-                    File imageFile = File(pickedFile.path); // Convierte XFile a File aquí
-                    changePhoto(imageFile); // Llama a changePhoto con el archivo
+                    File imageFile =
+                        File(pickedFile.path); // Convierte XFile a File aquí
+                    changePhoto(
+                        imageFile); // Llama a changePhoto con el archivo
                   }
                 },
               ),
@@ -165,9 +172,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: <Widget>[
                         _buildStatColumn('Posts', '${_posts?.length ?? 0}'),
                         const SizedBox(width: 20),
-                        _buildStatColumn('Following', '${_followersFollowing?['following'] ?? 0}'),
+                        _buildStatColumn('Following',
+                            '${_followersFollowing?['following'] ?? 0}'),
                         const SizedBox(width: 20),
-                        _buildStatColumn('Followers', '${_followersFollowing?['followers'] ?? 0}'),
+                        _buildStatColumn('Followers',
+                            '${_followersFollowing?['followers'] ?? 0}'),
                       ],
                     ),
                   ],
@@ -234,7 +243,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ? const Center(child: CircularProgressIndicator())
                   : GridView.builder(
                       padding: const EdgeInsets.all(10.0),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 3,
                         mainAxisSpacing: 10.0,
                         crossAxisSpacing: 10.0,
@@ -243,12 +253,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       itemCount: _posts!.length,
                       itemBuilder: (context, index) {
                         final post = _posts![index];
-                        print('Post: $post'); // Debugging line to print each post
+                        print(
+                            'Post: $post'); // Debugging line to print each post
                         return Container(
                           decoration: BoxDecoration(
                             image: DecorationImage(
                               image: NetworkImage(
-                                'http://172.203.251.28/beatnow/${post['user_id']}/posts/${post['_id']}/caratula.jpg',
+                                'https://res.beatnow.app/beatnow/${post['user_id']}/posts/${post['_id']}/caratula.jpg',
                               ),
                               fit: BoxFit.cover,
                             ),
@@ -270,18 +281,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: <Widget>[
         Text(
           count,
-          style: const TextStyle(fontSize: 22.0, fontWeight: FontWeight.bold, color: Colors.white),
+          style: const TextStyle(
+              fontSize: 22.0, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         Text(
           label,
-          style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.w400, color: Colors.white),
+          style: const TextStyle(
+              fontSize: 16.0, fontWeight: FontWeight.w400, color: Colors.white),
         ),
       ],
     );
   }
 
   Future<void> deletePhoto() async {
-    Uri apiUrl = Uri.parse('https://51.91.109.185:8001//v1/api/users/delete_photo_profile');
+    Uri apiUrl =
+        Uri.parse('https://api.beatnow.app/v1/api/users/delete_photo_profile');
     final token = UserSingleton().token;
 
     try {
@@ -309,14 +323,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> changePhoto(File photo) async {
-    Uri apiUrl = Uri.parse('https://51.91.109.185:8001//v1/api/users/change_photo_profile');
+    Uri apiUrl =
+        Uri.parse('https://api.beatnow.app/v1/api/users/change_photo_profile');
     final token = UserSingleton().token;
 
     try {
       var request = http.MultipartRequest('PUT', apiUrl)
         ..headers['Authorization'] = 'Bearer $token'
         ..headers['Content-Type'] = 'multipart/form-data'
-        ..files.add(await http.MultipartFile.fromPath('file', photo.path, contentType: MediaType('image', 'jpeg')));
+        ..files.add(await http.MultipartFile.fromPath('file', photo.path,
+            contentType: MediaType('image', 'jpeg')));
 
       var response = await request.send();
 
@@ -338,7 +354,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _fetchUserPosts() async {
     final username = userSingleton.username;
-    Uri apiUrl = Uri.parse('https://51.91.109.185:8001//v1/api/users/posts/$username');
+    Uri apiUrl =
+        Uri.parse('https://api.beatnow.app/v1/api/users/posts/$username');
     final token = userSingleton.token;
 
     try {
@@ -350,7 +367,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
-        print('Response JSON: $jsonResponse'); // Debugging line to print the JSON response
+        print(
+            'Response JSON: $jsonResponse'); // Debugging line to print the JSON response
         setState(() {
           _posts = jsonResponse;
         });
@@ -363,7 +381,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<Map<String, int>> _fetchFollowersFollowing(String userId) async {
-    Uri apiUrl = Uri.parse('https://51.91.109.185:8001//v1/api/users/profile/$userId');
+    Uri apiUrl =
+        Uri.parse('https://api.beatnow.app/v1/api/users/profile/$userId');
     final token = userSingleton.token;
 
     try {
@@ -384,7 +403,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (error) {
       print('Error fetching followers and following: $error');
-      return {'followers': 0, 'following': 0}; // En caso de error, retorna valores predeterminados
+      return {
+        'followers': 0,
+        'following': 0
+      }; // En caso de error, retorna valores predeterminados
     }
   }
 }

@@ -4,10 +4,12 @@ class OtherUserSingleton {
   late String _name = '';
   late String _username = '';
   late String _email = '';
- late String _profileImageUrl = 'https://51.91.109.185beatnow/$_id/photo_profile/photo_profile.png';
- late String _defaultProfileImageUrl = 'https://51.91.109.185/beatnow/default/default_photo.png';
+  late String _profileImageUrl =
+      'https://res.beatnow.appbeatnow/$_id/photo_profile/photo_profile.png';
+  late String _defaultProfileImageUrl =
+      'https://res.beatnow.app/beatnow/default/default_photo.png';
   late String _token = '';
-  late int _current= 0;
+  late int _current = 0;
 
   factory OtherUserSingleton() {
     return _instance;
@@ -23,11 +25,11 @@ class OtherUserSingleton {
   String get token => _token;
   String get id => _id;
   int get current => _current;
-  
 
   set id(String value) {
     _id = value;
   }
+
   set name(String value) {
     _name = value;
   }
@@ -47,12 +49,23 @@ class OtherUserSingleton {
   set defaultProfileImageUrl(String value) {
     _defaultProfileImageUrl = value;
   }
+
   set token(String value) {
     _token = value;
   }
+
   set current(int value) {
     _current = value;
   }
 
-  List<String> get user => [_id, _name, _username, _email, _profileImageUrl, _defaultProfileImageUrl, _token, _current.toString()];
+  List<String> get user => [
+        _id,
+        _name,
+        _username,
+        _email,
+        _profileImageUrl,
+        _defaultProfileImageUrl,
+        _token,
+        _current.toString()
+      ];
 }

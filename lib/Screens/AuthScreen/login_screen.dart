@@ -1,395 +1,229 @@
 import 'dart:convert';
 import 'package:BeatNow/Models/UserSingleton.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../Controllers/auth_controller.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/gestures.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
- 
- 
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
   _LoginScreenState createState() => _LoginScreenState();
-  
-  
 }
- 
+
 class _LoginScreenState extends State<LoginScreen> {
-  final AuthController _authController = Get.find<AuthController>(); // Obtener instancia del controlador AuthController
+  final AuthController _authController = Get.find<AuthController>();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  
-  // FIX 1: Create a single instance of GoogleSignIn to use throughout the class.
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+
   bool _obscurePassword = true;
-  
+  bool _isLoading = false;
+
   @override
   Widget build(BuildContext context) {
     final ButtonStyle buttonStyle = ElevatedButton.styleFrom(
       backgroundColor: const Color(0xFF3C0F4B),
       minimumSize: const Size(double.infinity, 56),
-      padding: const EdgeInsets.symmetric(vertical: 16),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-      ),
-      textStyle: const TextStyle(
-        fontFamily: 'Franklin Gothic Demi',
-        fontSize: 16.0,
+        borderRadius: BorderRadius.circular(12),
       ),
     );
-  
-  
-  
+
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                SizedBox(height: MediaQuery.of(context).size.height * 0.005),
-                const Text(
-                  'Welcome Back!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: 24.0,
-                      fontWeight: FontWeight.bold,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              const SizedBox(height: 60),
+              const Text(
+                'Welcome Back!',
+                style: TextStyle(
+                  fontSize: 24,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Please sign into your account',
+                style: TextStyle(color: Color(0xFF494949)),
+              ),
+              const SizedBox(height: 80),
+
+              // USERNAME
+              TextField(
+                controller: _usernameController,
+                style: const TextStyle(color: Colors.white),
+                decoration: _inputDecoration('Username'),
+              ),
+
+              const SizedBox(height: 20),
+
+              // PASSWORD
+              TextField(
+                controller: _passwordController,
+                obscureText: _obscurePassword,
+                style: const TextStyle(color: Colors.white),
+                decoration: _inputDecoration(
+                  'Password',
+                  suffix: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
                       color: Colors.white,
-                      fontFamily: 'Franklin Gothic Demi'),
-                ),
-                const Text(
-                  'Please sign into your account',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: 16.0,
-                      color: Color(0xFF494949),
-                      fontFamily: 'Franklin Gothic Demi'),
-                ),
-                SizedBox(height: MediaQuery.of(context).size.height * 0.12),
-                TextField(
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: 'Username',
-                    hintStyle: const TextStyle(color: Colors.white70),
-                    filled: true,
-                    fillColor: const Color(0xFF494949),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12.0),
-                      borderSide: BorderSide.none,
                     ),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
                   ),
-                  controller: _usernameController,
                 ),
-                const SizedBox(height: 20.0),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _login(),
+              ),
+
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => _authController.changeTab(2),
+                  child: const Text(
+                    'Forgot Password?',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 60),
+
+              // LOGIN BUTTON
+              ElevatedButton(
+                onPressed: _isLoading ? null : _login,
+                style: buttonStyle,
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Sign In'),
+              ),
+
+              const SizedBox(height: 40),
+
+              RichText(
+                text: TextSpan(
+                  text: "Don't have an account? ",
+                  style: const TextStyle(color: Colors.white),
                   children: [
-                    TextField(
-                      style: const TextStyle(color: Colors.white),
-                      obscureText: _obscurePassword,
-                      decoration: InputDecoration(
-                        hintText: 'Password',
-                        hintStyle: const TextStyle(color: Colors.white70),
-                        filled: true,
-                        fillColor: const Color(0xFF494949),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12.0),
-                          borderSide: BorderSide.none,
-                        ),
-                        suffixIcon: IconButton(
-                          icon: Icon(_obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility),
-                          onPressed: _togglePasswordVisibility,
-                        ),
+                    TextSpan(
+                      text: 'Sign Up',
+                      style: const TextStyle(
+                        color: Color(0xFF4E0566),
+                        decoration: TextDecoration.underline,
                       ),
-                      controller: _passwordController,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: TextButton(
-                        onPressed: () {
-                          // Añade la funcionalidad de olvidar contraseña aquí
-                          // Acción para cambiar a la pestaña de registro
-                          _authController.changeTab(2);
-                        },
-                        child: const Text(
-                          "Forgot Password?",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontFamily: 'Franklin Gothic Demi',
-                          ),
-                        ),
-                      ),
+                      recognizer: TapGestureRecognizer()
+                        ..onTap = () => _authController.changeTab(1),
                     ),
                   ],
                 ),
-                const SizedBox(height: 80.0),
-                ElevatedButton(
-                  onPressed: () {
-                    // Navega a la pestaña HomeScreenState
-                    _login(_usernameController.text, _passwordController.text,
-                        context);
-                  },
-                  style: buttonStyle,
-                  child: Text('Sign In'),
-                ),
-                const SizedBox(height: 20.0),
-                ElevatedButton.icon(
-                  icon: const FaIcon(FontAwesomeIcons.google, color: Colors.black),
-                  label: const Text('Continue with Google',
-                      style: TextStyle(color: Colors.black)),
-                  onPressed: () {
-                    signInWithGoogle(context);
-                  },
-                  style: buttonStyle.copyWith(
-                    backgroundColor: WidgetStateProperty.all(Colors.white),
-                  ),
-                ),
-                const SizedBox(height: 40.0),
-                RichText(
-                  textAlign: TextAlign.center,
-                  text: TextSpan(
-                    text: "Don't have an account? ",
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: 'Sign Up',
-                        style: const TextStyle(
-                            decoration: TextDecoration.underline,
-                            color: Color(0xFF4E0566)),
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () {
-                            _authController.changeTab(
-                                1); // Acción para cambiar a la pestaña de registro
-                          },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
-  
-  void _togglePasswordVisibility() {
-    setState(() {
-      _obscurePassword = !_obscurePassword;
-    });
+
+  InputDecoration _inputDecoration(String hint, {Widget? suffix}) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: Colors.white70),
+      filled: true,
+      fillColor: const Color(0xFF494949),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      suffixIcon: suffix,
+    );
   }
-  
-  void _login(String username, String password, BuildContext context) async {
-  // Obtener el token de acceso
-  final token = await _token(username, password, context);
-  
-  if (token != null) {
-    // Obtener información del usuario usando el token
-    final userInfo = await getUserInfo(token);
-  
-    if (userInfo != null && userInfo['is_active'] == false) {
-      _authController.changeTab(10);
-    } else if(userInfo != null && userInfo['is_active'] != false){
-      _authController.changeTab(3);
-    }else {
-      // Mostrar mensaje de error si no se pudo obtener la información del usuario
-      _showErrorSnackBar('Failed to get user info' , context);
+
+  Future<void> _login() async {
+    FocusScope.of(context).unfocus();
+
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (username.isEmpty || password.isEmpty) {
+      _showError('Fill all fields');
+      return;
     }
-  } else {
-    // Mostrar mensaje de error si no se pudo obtener el token de acceso
-    
+
+    try {
+      setState(() => _isLoading = true);
+
+      final token = await _getToken(username, password);
+      if (token == null) return;
+
+      final userInfo = await _getUserInfo(token);
+      if (userInfo == null) {
+        _showError('Failed to load user');
+        return;
+      }
+
+      userInfo['is_active'] == false
+          ? _authController.changeTab(10)
+          : _authController.changeTab(3);
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
-}
-  Future<Map<String, dynamic>> getTokenUser(String username, String password) async {
-    final apiUrl = Uri.parse('https://51.91.109.185:8001/token');
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final body = {
-      'username': username,
-      'password': password,
-    };
-  
+
+  Future<String?> _getToken(String username, String password) async {
     final response = await http.post(
-      apiUrl,
-      headers: <String, String>{
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: body,
+      Uri.parse('https://api.beatnow.app/token'),
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: {'username': username, 'password': password},
     );
-  
-    if (response.statusCode == 200) {
-      await prefs.setString('username', username);
-      await prefs.setString('password', password);
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200 && data['access_token'] != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('access_token', data['access_token']);
+      UserSingleton().token = data['access_token'];
+      return data['access_token'];
     }
-  
-    // Decodificar y devolver la respuesta del servidor
-    return json.decode(response.body);
-  }
-  
-  
-Future<String?> _token(String username, String password, BuildContext context) async {
-  final response = await getTokenUser(username, password);
-  
-  if (response["access_token"] != null) {
-    // Actualizar el token de acceso en UserSingleton
-    UserSingleton().token = response["access_token"];
-    String token = response["access_token"];
-    return token;
-  } else {
-    // Mostrar mensaje de error si la petición falla
-    _showErrorSnackBar("Incorrect Login", context);
+
+    _showError('Incorrect login');
     return null;
   }
-}
-  
-Future<Map<String, dynamic>?> getUserInfo(String token) async {
-  final apiUrl = Uri.parse('https://51.91.109.185:8001/v1/api/users/users/me');
-  
-  try {
+
+  Future<Map<String, dynamic>?> _getUserInfo(String token) async {
     final response = await http.get(
-      apiUrl,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
+      Uri.parse('https://api.beatnow.app/v1/api/users/users/me'),
+      headers: {'Authorization': 'Bearer $token'},
     );
-  
-    if (response.body.isNotEmpty) {
-      final jsonResponse = jsonDecode(response.body);
-      UserSingleton().id = jsonResponse['id'];
-      UserSingleton().name = jsonResponse['full_name'];
-      UserSingleton().username = jsonResponse['username'];
-      UserSingleton().email = jsonResponse['email'];
-      UserSingleton().isActive = jsonResponse['is_active'];
-      return jsonResponse;
-    }
-    else if(response.statusCode == 401){
-      // Mostrar mensaje de error si la solicitud falla
-      print('Request failed with status: ${response.statusCode}.');
-      return null;
-    }
-    else {
-      // Mostrar mensaje de error si la solicitud falla
-      print('Request failed with status: ${response.statusCode}.');
-      final jsonResponse = jsonDecode(response.body);
-      return jsonResponse;
-    }
-  } catch (e) {
-    // Mostrar mensaje de error si se produce una excepción
-    print('Error: $e');
-    return null;
+
+    if (response.statusCode != 200) return null;
+
+    final json = jsonDecode(response.body);
+    UserSingleton()
+      ..id = json['id']
+      ..name = json['full_name']
+      ..username = json['username']
+      ..email = json['email']
+      ..isActive = json['is_active'];
+
+    return json;
   }
-}
-  
-  
-  // Función para mostrar un SnackBar con un mensaje de error
-  void _showErrorSnackBar(String message, BuildContext context) {
+
+  void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(color: Colors.white),
-        ),
         backgroundColor: const Color(0xFF3C0F4B),
+        content: Text(msg),
       ),
     );
   }
-  
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  
-  
-Future<User?> signInWithGoogle(BuildContext context) async {
-    try {
-  
-      // FIX 2: Use the instantiated _googleSignIn object instead of the constructor call
-      await _googleSignIn.signOut();
-  
-      // Sign in with Google
-      // FIX 3: Use the instantiated _googleSignIn object instead of the constructor call
-      final GoogleSignInAccount? gUser = await _googleSignIn.signIn();
-  
-      if (gUser == null) {
-        // El usuario canceló el inicio de sesión
-        return null;
-      }
-  
-      final GoogleSignInAuthentication gAuth = await gUser.authentication;
-  
-      final credential = GoogleAuthProvider.credential(
-        accessToken: gAuth.idToken,
-        idToken: gAuth.idToken,
-      );
-  
-      // Autenticar con Firebase Auth
-      final UserCredential userCredential =
-          await _auth.signInWithCredential(credential);
-      
-      // Si la autenticación fue exitosa, navegar a la pantalla de inicio
-      if (userCredential.user != null) {
-  
-        String fullName = gUser.displayName ?? '';
-        String email = gUser.email ?? '';
-        String username = gUser.email.split('@')[0]; // Supongamos que el nombre de usuario es la parte antes del '@' en el correo electrónico
-        String password = 'GoogleAccount123!';
-  
-        String photo = gUser.photoUrl ?? '';
-  
-        try {
-          // Intentar registrar al usuario
-          await registerUser(fullName, email, username, password);
-        } catch (e) {
-          // Si hay una excepción al registrar al usuario, solo inicia sesión
-          print('User already registered. Logging in...');
-        }
-        _login(username, password, context);
-  
-      }
-  
-      return userCredential.user;
-    } catch (e) {
-      // Manejar errores aquí, como problemas de conexión o de autenticación
-      print("Error logging in with Google: $e");
-      return null;
-    }
-  }
-  
-  Future<Map<String, dynamic>> registerUser(String fullname, String email, String username, String password) async {
-  Uri apiUrl = Uri.parse('https://51.91.109.185:8001/v1/api/users/register');
-  
-  Map<String, dynamic> body = {
-    'full_name': fullname,
-    'email': email,
-    'username': username,
-    'password': password,
-  };
-  
-  final http.Response response = await http.post(
-    apiUrl,
-    headers: <String, String>{
-      'Content-Type': 'application/json; charset=UTF-8',
-    },
-    body: jsonEncode(body),
-  );
-  
-  if (response.statusCode == 200) {
-    return json.decode(response.body);
-  } else {
-    throw Exception('Failed to register user: ${response.body}');
-  }
-}
-  
-
-  
 }
