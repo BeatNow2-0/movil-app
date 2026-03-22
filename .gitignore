@@ -43,3 +43,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Generated artifacts
+android/build/
+android/app/build/
+ios/Pods/
+ios/Podfile.lock
+android/app/google-services.json

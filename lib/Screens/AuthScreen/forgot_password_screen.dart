@@ -1,15 +1,35 @@
-import 'package:flutter/material.dart';
+import 'package:BeatNow/Controllers/auth_controller.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../Controllers/auth_controller.dart';
 import 'package:regexed_validator/regexed_validator.dart';
 
-class ForgotPasswordScreen extends StatelessWidget {
-  final AuthController _authController = Get.find<AuthController>(); // Obtener instancia del controlador AuthController
-  final TextEditingController _emailController = TextEditingController();
-
+class ForgotPasswordScreen extends StatefulWidget {
   ForgotPasswordScreen({super.key});
- 
+
+  @override
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+}
+
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+  final AuthController _authController = Get.find<AuthController>();
+  final TextEditingController _emailController = TextEditingController();
+  late final TapGestureRecognizer _signInRecognizer;
+
+  @override
+  void initState() {
+    super.initState();
+    _signInRecognizer = TapGestureRecognizer()
+      ..onTap = () => _authController.changeTab(AuthTabs.login);
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _signInRecognizer.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final ButtonStyle buttonStyle = ElevatedButton.styleFrom(
@@ -24,7 +44,7 @@ class ForgotPasswordScreen extends StatelessWidget {
         fontSize: 16.0,
       ),
     );
- 
+
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
       appBar: AppBar(
@@ -43,7 +63,6 @@ class ForgotPasswordScreen extends StatelessWidget {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.start, // Alinea los elementos al principio
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             const Center(
@@ -85,29 +104,7 @@ class ForgotPasswordScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20.0),
             ElevatedButton(
-              onPressed: () {
-                // Get the email from the text field
-                String email = _emailController.text.trim();
-                if (validator.email(email)) { // Verificar si el correo electrónico es válido
-                  // Eliminar el símbolo "@" del correo electrónico antes de enviarlo a la API
- 
-                  // Save the email to AuthController
-                  _authController.email.value = email;
-                  // Change tab to 11
-                  _authController.changeTab(11);
-                } else {
-                  // Mostrar un mensaje de error si el correo electrónico no es válido
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Please enter a valid email address.',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      backgroundColor: Color(0xFF3C0F4B),
-                    ),
-                  );
-                }
-              },
+              onPressed: _submit,
               style: buttonStyle,
               child: const Text('Send'),
             ),
@@ -124,9 +121,7 @@ class ForgotPasswordScreen extends StatelessWidget {
                         decoration: TextDecoration.underline,
                         color: Color(0xFF4E0566),
                       ),
-                      recognizer: TapGestureRecognizer()..onTap = () {
-                        _authController.changeTab(9);
-                      },
+                      recognizer: _signInRecognizer,
                     ),
                   ],
                 ),
@@ -134,6 +129,25 @@ class ForgotPasswordScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _submit() {
+    final email = _emailController.text.trim();
+    if (validator.email(email)) {
+      _authController.email.value = email;
+      _authController.changeTab(AuthTabs.sendingResetEmail);
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Please enter a valid email address.',
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Color(0xFF3C0F4B),
       ),
     );
   }

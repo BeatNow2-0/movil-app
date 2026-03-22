@@ -120,7 +120,7 @@ class _HomeScreenState extends State<HomeScreenState>
               backgroundColor: const Color(0xFF111111),
               elevation: 0,
               leading: IconButton(
-                onPressed: () => _authController.changeTab(4),
+                onPressed: () => _authController.changeTab(AuthTabs.profile),
                 icon: CircleAvatar(
                   backgroundImage:
                       NetworkImage(UserSingleton().profileImageUrl),
@@ -134,7 +134,7 @@ class _HomeScreenState extends State<HomeScreenState>
               actions: [
                 IconButton(
                   icon: const Icon(Icons.search, color: Colors.white),
-                  onPressed: () => _authController.changeTab(6),
+                  onPressed: () => _authController.changeTab(AuthTabs.search),
                 ),
               ],
             )
@@ -200,7 +200,7 @@ class _HomeScreenState extends State<HomeScreenState>
             onTap: () {
               OtherUserSingleton().username = post.username;
               OtherUserSingleton().id = post.userId;
-              _authController.changeTab(8);
+              _authController.changeTab(AuthTabs.otherProfile);
             },
             child: CircleAvatar(
               radius: 22,

@@ -1,22 +1,29 @@
 import 'dart:convert';
+
+import 'package:BeatNow/Controllers/auth_controller.dart';
 import 'package:BeatNow/Models/UserSingleton.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'package:BeatNow/Controllers/auth_controller.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
-import 'package:flutter/services.dart';
 
 class CodeConfirmationScreen extends StatefulWidget {
   const CodeConfirmationScreen({super.key});
 
   @override
-  _CodeConfirmationScreenState createState() => _CodeConfirmationScreenState();
+  State<CodeConfirmationScreen> createState() => _CodeConfirmationScreenState();
 }
 
 class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
   final AuthController _authController = Get.find<AuthController>();
   final TextEditingController _codeController = TextEditingController();
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +49,7 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
           IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () {
-              _authController.changeTab(9);
+              _authController.changeTab(AuthTabs.login);
             },
           ),
         ],
@@ -59,10 +66,11 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
                   'Enter Confirmation Code',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      fontSize: 24.0,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontFamily: 'Franklin Gothic Demi'),
+                    fontSize: 24.0,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontFamily: 'Franklin Gothic Demi',
+                  ),
                 ),
                 const SizedBox(height: 20.0),
                 PinCodeTextField(
@@ -87,7 +95,7 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
                   textStyle: const TextStyle(color: Colors.white),
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  onChanged: (value) {},
+                  onChanged: (_) {},
                 ),
                 const SizedBox(height: 20.0),
                 ElevatedButton(
@@ -105,13 +113,12 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
     );
   }
 
-  void _submitCode(String code, BuildContext context) async {
+  Future<void> _submitCode(String code, BuildContext context) async {
     final token = UserSingleton().token;
-
     final response = await _sendCodeToApi(token, code);
 
     if (response['message'] == 'Ok') {
-      _authController.changeTab(3);
+      _authController.changeTab(AuthTabs.home);
     } else {
       _showErrorSnackBar('Invalid code', context);
     }
@@ -119,7 +126,8 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
 
   Future<Map<String, dynamic>> _sendCodeToApi(String token, String code) async {
     final apiUrl = Uri.parse(
-        'https://api.beatnow.app/v1/api/mail/confirmation/?code=$code');
+      'https://api.beatnow.app/v1/api/mail/confirmation/?code=$code',
+    );
 
     try {
       final response = await http.post(
@@ -133,14 +141,11 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
       );
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      } else {
-        return {'message': 'Error'};
+        return jsonDecode(response.body) as Map<String, dynamic>;
       }
-    } catch (e) {
-      print('Error: $e');
-      return {'message': 'Error'};
-    }
+    } catch (_) {}
+
+    return {'message': 'Error'};
   }
 
   void _showErrorSnackBar(String message, BuildContext context) {

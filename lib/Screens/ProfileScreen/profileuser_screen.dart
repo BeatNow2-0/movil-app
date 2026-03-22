@@ -8,25 +8,6 @@ import '../../Controllers/auth_controller.dart'; // Ajusta la importación segú
 import 'package:BeatNow/Models/UserSingleton.dart';
 import 'package:http_parser/http_parser.dart';
 
-void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return GetMaterialApp(
-      title: 'Profile Screen Example',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: ProfileScreen(),
-    );
-  }
-}
-
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -122,7 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            _authController.changeTab(3);
+            _authController.changeTab(AuthTabs.home);
             Get.back(); // or Navigator.pop(context) if not using GetX
           },
         ),
@@ -220,7 +201,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () {
-                        _authController.changeTab(5);
+                        _authController.changeTab(AuthTabs.accountSettings);
                       },
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Colors.white),
@@ -317,7 +298,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         throw Exception('Failed to delete profile photo: ${response.body}');
       }
     } catch (error) {
-      print('Error deleting profile photo: $error');
+      debugPrint('Error deleting profile photo: $error');
       // Handle error appropriately, like showing a snackbar or dialog
     }
   }
@@ -337,18 +318,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       var response = await request.send();
 
       if (response.statusCode == 200) {
-        print('Image uploaded successfully');
+        debugPrint('Image uploaded successfully');
         setState(() {
           _hasProfileImage = false;
           _profileImagePath = '';
         });
         final respStr = await response.stream.bytesToString();
-        print(respStr);
+        debugPrint(respStr);
       } else {
-        print('Failed to upload image: ${response.reasonPhrase}');
+        debugPrint('Failed to upload image: ${response.reasonPhrase}');
       }
     } catch (error) {
-      print('Error uploading image: $error');
+      debugPrint('Error uploading image: $error');
     }
   }
 
@@ -367,16 +348,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
-        print(
-            'Response JSON: $jsonResponse'); // Debugging line to print the JSON response
-        setState(() {
+                setState(() {
           _posts = jsonResponse;
         });
       } else {
         throw Exception('Failed to load posts');
       }
     } catch (error) {
-      print('Error fetching user posts: $error');
+      debugPrint('Error fetching user posts: $error');
     }
   }
 
@@ -402,7 +381,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         throw Exception('Failed to load followers and following');
       }
     } catch (error) {
-      print('Error fetching followers and following: $error');
+      debugPrint('Error fetching followers and following: $error');
       return {
         'followers': 0,
         'following': 0
