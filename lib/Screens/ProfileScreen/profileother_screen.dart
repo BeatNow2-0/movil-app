@@ -7,25 +7,6 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import '../../Controllers/auth_controller.dart'; // Ajusta la importación según la estructura de tu proyecto
 
-void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return GetMaterialApp(
-      title: 'Profile Screen Example',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: ProfileOtherScreen(),
-    );
-  }
-}
-
 class ProfileOtherScreen extends StatefulWidget {
   const ProfileOtherScreen({super.key});
 
@@ -69,16 +50,14 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
       );
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
-        print(
-            'Response JSON: $jsonResponse'); // Debugging line to print the JSON response
-        setState(() {
+                setState(() {
           _posts = jsonResponse;
         });
       } else {
         throw Exception('Failed to load posts: ${response.statusCode}');
       }
     } catch (error) {
-      print('Error fetching user posts: $error');
+      debugPrint('Error fetching user posts: $error');
     }
   }
 
@@ -104,7 +83,7 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
         throw Exception('Failed to load followers and following');
       }
     } catch (error) {
-      print('Error fetching followers and following: $error');
+      debugPrint('Error fetching followers and following: $error');
       return {
         'followers': 0,
         'following': 0
@@ -119,7 +98,7 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            _authController.changeTab(3);
+            _authController.changeTab(AuthTabs.home);
             Get.back(); // or Navigator.pop(context) if not using GetX
           },
         ),
@@ -315,7 +294,7 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
         throw Exception('Failed to load followers and following');
       }
     } catch (error) {
-      print('Error fetching followers and following: $error');
+      debugPrint('Error fetching followers and following: $error');
       return 0; // En caso de error, retorna valores predeterminados
     }
   }

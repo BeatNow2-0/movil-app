@@ -1,8 +1,6 @@
-// android/app/build.gradle
-
 plugins {
     id "com.android.application"
-    id "org.jetbrains.kotlin.android"       // usar el id moderno
+    id "org.jetbrains.kotlin.android"
     id "dev.flutter.flutter-gradle-plugin"
 }
 
@@ -12,6 +10,12 @@ if (localPropertiesFile.exists()) {
     localPropertiesFile.withReader('UTF-8') { reader ->
         localProperties.load(reader)
     }
+}
+
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '1'
@@ -35,6 +39,17 @@ android {
         main.java.srcDirs += 'src/main/kotlin'
     }
 
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+            }
+        }
+    }
+
     defaultConfig {
         applicationId "com.example.login_flutter"
         minSdkVersion flutter.minSdkVersion
@@ -46,7 +61,11 @@ android {
 
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
+            minifyEnabled true
+            shrinkResources true
         }
     }
 }
@@ -56,11 +75,9 @@ flutter {
 }
 
 dependencies {
-    // usar AndroidX multidex (si tu proyecto es AndroidX)
     implementation 'androidx.multidex:multidex:2.0.1'
-
-    // Firebase - usa BOM para manejar versiones de artefactos
     implementation platform('com.google.firebase:firebase-bom:33.0.0')
     implementation 'com.google.firebase:firebase-analytics'
 }
+
 apply plugin: 'com.google.gms.google-services'

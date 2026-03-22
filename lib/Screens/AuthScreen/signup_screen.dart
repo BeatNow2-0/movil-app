@@ -1,9 +1,11 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
+
+import 'package:BeatNow/Controllers/auth_controller.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import '../../Controllers/auth_controller.dart';
+import 'package:regexed_validator/regexed_validator.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -20,10 +22,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _username = TextEditingController();
   final _password = TextEditingController();
   final _confirmPassword = TextEditingController();
+  late final TapGestureRecognizer _signInRecognizer;
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _signInRecognizer = TapGestureRecognizer()
+      ..onTap = () => _authController.changeTab(AuthTabs.login);
+  }
+
+  @override
+  void dispose() {
+    _fullName.dispose();
+    _email.dispose();
+    _username.dispose();
+    _password.dispose();
+    _confirmPassword.dispose();
+    _signInRecognizer.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,9 +59,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
               const Text(
                 'Create New Account',
                 style: TextStyle(
-                    fontSize: 24,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold),
+                  fontSize: 24,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               const Text(
@@ -49,7 +71,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               const SizedBox(height: 40),
               _input(_fullName, 'Full Name'),
-              _input(_email, 'Email Address'),
+              _input(_email, 'Email Address', keyboardType: TextInputType.emailAddress),
               _input(_username, 'Username'),
               _passwordInput(_password, 'Password', true),
               _passwordInput(_confirmPassword, 'Confirm Password', false),
@@ -76,8 +98,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         color: Color(0xFF4E0566),
                         decoration: TextDecoration.underline,
                       ),
-                      recognizer: TapGestureRecognizer()
-                        ..onTap = () => _authController.changeTab(0),
+                      recognizer: _signInRecognizer,
                     ),
                   ],
                 ),
@@ -89,11 +110,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  Widget _input(TextEditingController c, String hint) {
+  Widget _input(
+    TextEditingController c,
+    String hint, {
+    TextInputType keyboardType = TextInputType.text,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: TextField(
         controller: c,
+        keyboardType: keyboardType,
         style: const TextStyle(color: Colors.white),
         decoration: _decoration(hint),
       ),
@@ -144,35 +170,105 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Future<void> _register() async {
     FocusScope.of(context).unfocus();
 
-    if (_password.text != _confirmPassword.text) {
-      _error('Passwords do not match');
+    final fullName = _fullName.text.trim();
+    final email = _email.text.trim();
+    final username = _username.text.trim();
+    final password = _password.text;
+    final confirmPassword = _confirmPassword.text;
+
+    final validationError = _validateForm(
+      fullName: fullName,
+      email: email,
+      username: username,
+      password: password,
+      confirmPassword: confirmPassword,
+    );
+
+    if (validationError != null) {
+      _showMessage(validationError);
       return;
     }
 
-    try {
-      setState(() => _isLoading = true);
+    setState(() => _isLoading = true);
 
-      await http.post(
+    try {
+      final response = await http.post(
         Uri.parse('https://api.beatnow.app/v1/api/users/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'full_name': _fullName.text.trim(),
-          'email': _email.text.trim(),
-          'username': _username.text.trim(),
-          'password': _password.text,
+          'full_name': fullName,
+          'email': email,
+          'username': username,
+          'password': password,
         }),
       );
 
-      _error('Account created. Please sign in.');
-      _authController.changeTab(0);
-    } catch (e) {
-      _error('Registration failed');
+      if (!mounted) {
+        return;
+      }
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        _showMessage('Account created. Please sign in.');
+        _authController.changeTab(AuthTabs.login);
+      } else {
+        final message = _extractErrorMessage(response.body);
+        _showMessage(message ?? 'Registration failed');
+      }
+    } catch (_) {
+      if (mounted) {
+        _showMessage('Registration failed');
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
-  void _error(String msg) {
+  String? _validateForm({
+    required String fullName,
+    required String email,
+    required String username,
+    required String password,
+    required String confirmPassword,
+  }) {
+    if (fullName.isEmpty || email.isEmpty || username.isEmpty) {
+      return 'Fill all fields';
+    }
+    if (!validator.email(email)) {
+      return 'Enter a valid email address';
+    }
+    if (username.length < 3) {
+      return 'Username must contain at least 3 characters';
+    }
+    if (password.length < 8) {
+      return 'Password must contain at least 8 characters';
+    }
+    if (password != confirmPassword) {
+      return 'Passwords do not match';
+    }
+    return null;
+  }
+
+  String? _extractErrorMessage(String responseBody) {
+    if (responseBody.isEmpty) {
+      return null;
+    }
+
+    try {
+      final decoded = jsonDecode(responseBody);
+      if (decoded is Map<String, dynamic>) {
+        final detail = decoded['detail'];
+        if (detail is String && detail.isNotEmpty) {
+          return detail;
+        }
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
+  void _showMessage(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: const Color(0xFF3C0F4B),

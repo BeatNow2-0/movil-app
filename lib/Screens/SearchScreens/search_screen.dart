@@ -47,7 +47,7 @@ class _SearchScreenState extends State<SearchScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            _authController.changeTab(3);
+            _authController.changeTab(AuthTabs.home);
           },
         ),
         actions: _searchingUsers
@@ -236,7 +236,7 @@ class _SearchScreenState extends State<SearchScreen> {
               Get.to(() => ProfileOtherScreen());
             } else {
               // Manejar caso donde user['_id'] o user['username'] es nulo
-              print('Usuario no válido: $_userSearchResults');
+              debugPrint('Usuario no válido: $_userSearchResults');
             }
           },
         );

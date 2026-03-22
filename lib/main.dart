@@ -1,29 +1,25 @@
-import 'dart:io';
-
 import 'package:BeatNow/Screens/AuthScreen/authentication_code_screen.dart';
 import 'package:BeatNow/Screens/AuthScreen/splash_screen.dart';
+import 'package:BeatNow/Screens/HomeScreen/home_screen.dart';
 import 'package:BeatNow/Screens/HomeScreen/saved_screen.dart';
 import 'package:BeatNow/Screens/ProfileScreen/AccountSettingsScreen.dart';
 import 'package:BeatNow/Screens/ProfileScreen/profileother_screen.dart';
+import 'package:BeatNow/Screens/ProfileScreen/profileuser_screen.dart';
 import 'package:BeatNow/Screens/SearchScreens/search_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../Screens/AuthScreen/forgot_password_screen.dart';
-import './Controllers/auth_controller.dart';
-import '../Screens/AuthScreen/login_screen.dart';
-import '../Screens/AuthScreen/signup_screen.dart';
-import '../Screens/ProfileScreen/profileuser_screen.dart';
-import '../Screens/HomeScreen/home_screen.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'http_overrides.dart';
 
-void main() async {
+import 'Controllers/auth_controller.dart';
+import 'Screens/AuthScreen/forgot_password_screen.dart';
+import 'Screens/AuthScreen/login_screen.dart';
+import 'Screens/AuthScreen/signup_screen.dart';
+import 'firebase_options.dart';
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  HttpOverrides.global = MyHttpOverrides();
-
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -33,7 +29,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Login Screen',
+      title: 'BeatNow',
       theme: ThemeData(
         brightness: Brightness.dark,
         primarySwatch: Colors.deepPurple,
@@ -47,42 +43,40 @@ class MyApp extends StatelessWidget {
 }
 
 class HomeScreen extends StatelessWidget {
-  // FIX: Added 'late' keyword to allow non-constant initialization (Get.put)
-  // in a constant widget context.
-  final AuthController _authController = Get.put(AuthController());
-
   HomeScreen({super.key});
+
+  final AuthController _authController = Get.put(AuthController());
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
       switch (_authController.selectedIndex.value) {
-        case 0:
-          return SplashScreen(0);
-        case 1:
-          return SignUpScreen();
-        case 2:
+        case AuthTabs.splash:
+          return const SplashScreen();
+        case AuthTabs.signUp:
+          return const SignUpScreen();
+        case AuthTabs.forgotPassword:
           return ForgotPasswordScreen();
-        case 3:
+        case AuthTabs.home:
           return HomeScreenState();
-        case 4:
-          return ProfileScreen();
-        case 5:
+        case AuthTabs.profile:
+          return const ProfileScreen();
+        case AuthTabs.accountSettings:
           return AccountSettingsScreen();
-        case 6:
+        case AuthTabs.search:
           return SearchScreen();
-        case 7:
-          return SavedScreen();
-        case 8:
-          return ProfileOtherScreen();
-        case 9:
-          return LoginScreen();
-        case 10:
-          return CodeConfirmationScreen();
-        case 11:
-          return SplashScreen(2);
+        case AuthTabs.saved:
+          return const SavedScreen();
+        case AuthTabs.otherProfile:
+          return const ProfileOtherScreen();
+        case AuthTabs.login:
+          return const LoginScreen();
+        case AuthTabs.codeConfirmation:
+          return const CodeConfirmationScreen();
+        case AuthTabs.sendingResetEmail:
+          return const SplashScreen(sendPasswordReset: true);
         default:
-          return LoginScreen();
+          return const LoginScreen();
       }
     });
   }

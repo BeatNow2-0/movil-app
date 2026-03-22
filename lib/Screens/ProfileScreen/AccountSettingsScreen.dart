@@ -35,7 +35,7 @@ class AccountSettingsScreen extends StatelessWidget {
                 UserSingleton().email = '';
 
                 // Implementa la lógica para cerrar sesión
-                _authController.changeTab(9); // Cambiar a la pestaña 0
+                _authController.changeTab(AuthTabs.login);
                 Navigator.of(context).pop();
               },
               child: const Text(
@@ -96,11 +96,11 @@ class AccountSettingsScreen extends StatelessWidget {
                   onPressed: () {
                     // Implementa la lógica para borrar la cuenta
 
-                    _authController.changeTab(0); // Cambiar a la pestaña 0
+                    _authController.changeTab(AuthTabs.splash);
 
                     dropUser(passwordController.text);
                     Navigator.of(context).pop();
-                    _authController.changeTab(0);
+                    _authController.changeTab(AuthTabs.splash);
                   },
                   child: const Text(
                     'Delete Account',
@@ -179,7 +179,7 @@ class AccountSettingsScreen extends StatelessWidget {
                     String newPassword = newPasswordController.text;
                     String confirmPassword = confirmPasswordController.text;
                     if (newPassword != confirmPassword) {
-                      print('Passwords do not match');
+                      Get.snackbar('Error', 'Passwords do not match');
                       return;
                     } else {
                       changePassword(UserSingleton().username, currentPassword,
@@ -230,7 +230,7 @@ class AccountSettingsScreen extends StatelessWidget {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
             return AlertDialog(
-              title: const Text('Change Email Adress'),
+              title: const Text('Change Email Address'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -294,7 +294,7 @@ class AccountSettingsScreen extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            _authController.changeTab(4);
+            _authController.changeTab(AuthTabs.profile);
           },
         ),
       ),
@@ -316,7 +316,7 @@ class AccountSettingsScreen extends StatelessWidget {
             Expanded(
               child: ListView(
                 children: [
-                  _buildListTile('Change Email Adress', Icons.email,
+                  _buildListTile('Change Email Address', Icons.email,
                       () => _onChangeEmailClicked(context)),
                   _buildListTile('Change Password', Icons.lock,
                       () => _onChangePasswordClicked(context)),
@@ -410,16 +410,16 @@ Future<Map<String, dynamic>?> updateEmail(String email, String password) async {
       }
     } else if (response.statusCode == 401) {
       // La autorización falló
-      print('Error: Unauthorized request');
+      Get.snackbar('Error', 'Unauthorized request');
       return null;
     } else {
       // Otros errores de la solicitud
-      print('Error: ${response.statusCode} ${response.reasonPhrase}');
+      Get.snackbar('Error', 'Request failed: ${response.statusCode}');
       return null;
     }
   } catch (e) {
     // Mostrar mensaje de error si se produce una excepción
-    print('Error: $e');
+    Get.snackbar('Error', 'Request failed');
     return null;
   }
 }
@@ -444,23 +444,22 @@ Future<Map<String, dynamic>?> deleteUser() async {
       UserSingleton().username = "";
       UserSingleton().email = "";
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      prefs.remove('username');
-      prefs.remove('password');
+      prefs.remove('access_token');
 
       return null;
     } else if (response.statusCode == 401) {
       // Mostrar mensaje de error si la solicitud falla
-      print('Request failed with status: ${response.statusCode}.');
+      Get.snackbar('Error', 'Request failed: ${response.statusCode}');
       return null;
     } else {
       // Mostrar mensaje de error si la solicitud falla
-      print('Request failed with status: ${response.statusCode}.');
+      Get.snackbar('Error', 'Request failed: ${response.statusCode}');
       final jsonResponse = jsonDecode(response.body);
       return jsonResponse;
     }
   } catch (e) {
     // Mostrar mensaje de error si se produce una excepción
-    print('Error: $e');
+    Get.snackbar('Error', 'Request failed');
     return null;
   }
 }
@@ -499,23 +498,23 @@ Future<Map<String, dynamic>?> updatePassword(String newPassword) async {
       }
     } else if (response.statusCode == 401) {
       // La autorización falló
-      print('Error: Unauthorized request');
+      Get.snackbar('Error', 'Unauthorized request');
       return null;
     } else {
       // Otros errores de la solicitud
-      print('Error: ${response.statusCode} ${response.reasonPhrase}');
+      Get.snackbar('Error', 'Request failed: ${response.statusCode}');
       return null;
     }
   } catch (e) {
     // Mostrar mensaje de error si se produce una excepción
-    print('Error: $e');
+    Get.snackbar('Error', 'Request failed');
     return null;
   }
 }
 
 Future<Map<String, dynamic>> changePassword(
     String username, String password, String newPassword) async {
-  final apiUrl = Uri.parse('https://api.beatnow.app//token');
+  final apiUrl = Uri.parse('https://api.beatnow.app/token');
 
   final body = {
     'username': username,
@@ -539,7 +538,7 @@ Future<Map<String, dynamic>> changePassword(
 }
 
 Future<Map<String, dynamic>> dropUser(String password) async {
-  final apiUrl = Uri.parse('https://api.beatnow.app//token');
+  final apiUrl = Uri.parse('https://api.beatnow.app/token');
 
   final body = {
     'username': UserSingleton().username,
