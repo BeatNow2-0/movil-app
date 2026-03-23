@@ -5,7 +5,7 @@ class OtherUserSingleton {
   late String _username = '';
   late String _email = '';
   late String _profileImageUrl =
-      'https://res.beatnow.appbeatnow/$_id/photo_profile/photo_profile.png';
+      'https://res.beatnow.app/beatnow/$_id/photo_profile/photo_profile.png';
   late String _defaultProfileImageUrl =
       'https://res.beatnow.app/beatnow/default/default_photo.png';
   late String _token = '';

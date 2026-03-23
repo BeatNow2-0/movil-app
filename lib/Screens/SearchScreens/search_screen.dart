@@ -1,11 +1,8 @@
-import 'package:BeatNow/Models/OtherUserSingleton.dart';
-import 'package:BeatNow/Models/UserSingleton.dart';
 import 'package:BeatNow/Screens/ProfileScreen/profileother_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:BeatNow/Controllers/auth_controller.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert' as convert;
+import 'package:BeatNow/services/beatnow_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -18,6 +15,7 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   List<String> _searchHistory = [];
   final AuthController _authController = Get.find<AuthController>();
+  final BeatNowService _beatNowService = BeatNowService();
   bool _searchingUsers = false;
   List<Map<String, dynamic>> _userSearchResults = [];
 
@@ -199,7 +197,7 @@ class _SearchScreenState extends State<SearchScreen> {
         setState(() {
           _userSearchResults = results
               .map((user) => {
-                    '_id': user['_id'].toString(),
+                    '_id': (user['_id'] ?? user['id']).toString(),
                     'username': user['username'].toString()
                   })
               .toList();
@@ -231,8 +229,7 @@ class _SearchScreenState extends State<SearchScreen> {
           title: Text('@' + user['username']!),
           onTap: () {
             if (user['_id'] != null && user['username'] != null) {
-              OtherUserSingleton().id = user['_id']!;
-              OtherUserSingleton().username = user['username']!;
+              _beatNowService.setOtherUserFromSearchResult(user);
               Get.to(() => ProfileOtherScreen());
             } else {
               // Manejar caso donde user['_id'] o user['username'] es nulo
@@ -392,48 +389,14 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<List<dynamic>> _searchUsers(String query) async {
-    final token = UserSingleton().token;
-    final response = await http.get(
-      Uri.parse('https://api.beatnow.app/v1/api/search/user?username=$query'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final jsonResponse = convert.jsonDecode(response.body);
-      if (jsonResponse is List) {
-        return jsonResponse
-            .where((user) => user['_id'] != null && user['username'] != null)
-            .toList();
-      } else {
-        throw Exception('Invalid response format');
-      }
-    } else {
-      throw Exception('Failed to load search results');
-    }
+    final results = await _beatNowService.searchUsers(query);
+    return results
+        .where((user) =>
+            (user['_id'] ?? user['id']) != null && user['username'] != null)
+        .toList();
   }
 
-  Future<List<dynamic>> _searchFilter(String query) async {
-    final token = UserSingleton().token;
-    final response = await http.get(
-      Uri.parse('https://api.beatnow.app/v1/api/search/user?username=$query'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final jsonResponse = convert.jsonDecode(response.body);
-      if (jsonResponse is List) {
-        return jsonResponse
-            .where((user) => user['_id'] != null && user['username'] != null)
-            .toList();
-      } else {
-        throw Exception('Invalid response format');
-      }
-    } else {
-      throw Exception('Failed to load search results');
-    }
+  Future<List<dynamic>> _searchFilter(String query) {
+    return _beatNowService.searchPosts(query);
   }
 }
