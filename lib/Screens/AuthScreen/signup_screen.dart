@@ -1,10 +1,9 @@
-import 'dart:convert';
-
 import 'package:BeatNow/Controllers/auth_controller.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
+import 'package:BeatNow/services/api_client.dart';
+import 'package:BeatNow/services/beatnow_service.dart';
 import 'package:regexed_validator/regexed_validator.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -23,6 +22,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _password = TextEditingController();
   final _confirmPassword = TextEditingController();
   late final TapGestureRecognizer _signInRecognizer;
+
+  final BeatNowService _beatNowService = BeatNowService();
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -192,27 +193,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final response = await http.post(
-        Uri.parse('https://api.beatnow.app/v1/api/users/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'full_name': fullName,
-          'email': email,
-          'username': username,
-          'password': password,
-        }),
+      await _beatNowService.register(
+        fullName: fullName,
+        email: email,
+        username: username,
+        password: password,
       );
 
       if (!mounted) {
         return;
       }
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        _showMessage('Account created. Please sign in.');
-        _authController.changeTab(AuthTabs.login);
-      } else {
-        final message = _extractErrorMessage(response.body);
-        _showMessage(message ?? 'Registration failed');
+      _showMessage('Account created. Please sign in.');
+      _authController.changeTab(AuthTabs.login);
+    } on ApiException catch (error) {
+      if (mounted) {
+        _showMessage(error.message);
       }
     } catch (_) {
       if (mounted) {
@@ -247,24 +243,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (password != confirmPassword) {
       return 'Passwords do not match';
     }
-    return null;
-  }
-
-  String? _extractErrorMessage(String responseBody) {
-    if (responseBody.isEmpty) {
-      return null;
-    }
-
-    try {
-      final decoded = jsonDecode(responseBody);
-      if (decoded is Map<String, dynamic>) {
-        final detail = decoded['detail'];
-        if (detail is String && detail.isNotEmpty) {
-          return detail;
-        }
-      }
-    } catch (_) {}
-
     return null;
   }
 

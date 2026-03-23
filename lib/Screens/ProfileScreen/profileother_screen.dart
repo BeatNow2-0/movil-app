@@ -1,9 +1,10 @@
-import 'dart:io';
 import 'dart:convert';
 import 'package:BeatNow/Models/OtherUserSingleton.dart';
 import 'package:BeatNow/Models/UserSingleton.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:BeatNow/services/api_client.dart';
+import 'package:BeatNow/services/beatnow_service.dart';
 import 'package:http/http.dart' as http;
 import '../../Controllers/auth_controller.dart'; // Ajusta la importación según la estructura de tu proyecto
 
@@ -17,8 +18,8 @@ class ProfileOtherScreen extends StatefulWidget {
 class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
   final AuthController _authController = Get.find<AuthController>();
   final userSingleton = OtherUserSingleton();
-  final bool _hasProfileImage = false; // Cambiado a falso inicialmente
-  String? _profileImagePath; // Ruta de la imagen de perfil
+  final BeatNowService _beatNowService = BeatNowService();
+  bool _isFollowingUser = false;
   List<dynamic>? _posts;
   Map<String, int>? _followersFollowing;
 
@@ -30,10 +31,9 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
 
   Future<void> _initializeProfileData() async {
     await _fetchUserPosts(OtherUserSingleton().username);
-    _followersFollowing =
-        await _fetchFollowersFollowing(OtherUserSingleton().id);
-    setState(
-        () {}); // Asegúrate de actualizar la interfaz de usuario después de cargar los datos
+    _followersFollowing = await _fetchFollowersFollowing(OtherUserSingleton().id);
+    _isFollowingUser = await _isFollowing(OtherUserSingleton().id) == 1;
+    setState(() {});
   }
 
   Future<void> _fetchUserPosts(String username) async {
@@ -195,8 +195,28 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
                   const SizedBox(width: 10), // Espacio entre los botones
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () {
-                        // Acción cuando se presiona el botón "Follow"
+                      onPressed: () async {
+                        try {
+                          if (_isFollowingUser) {
+                            await _beatNowService.unfollowUser(OtherUserSingleton().id);
+                          } else {
+                            await _beatNowService.followUser(OtherUserSingleton().id);
+                          }
+                          if (!mounted) return;
+                          setState(() {
+                            _isFollowingUser = !_isFollowingUser;
+                            final delta = _isFollowingUser ? 1 : -1;
+                            _followersFollowing = {
+                              ...?_followersFollowing,
+                              'followers': (_followersFollowing?['followers'] ?? 0) + delta,
+                            };
+                          });
+                        } on ApiException catch (error) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(error.message)),
+                          );
+                        }
                       },
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Colors.white),
@@ -204,9 +224,9 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
                           borderRadius: BorderRadius.circular(5.0),
                         ),
                       ),
-                      child: const Text(
-                        'Follow',
-                        style: TextStyle(color: Colors.white),
+                      child: Text(
+                        _isFollowingUser ? 'Following' : 'Follow',
+                        style: const TextStyle(color: Colors.white),
                       ),
                     ),
                   ),
@@ -284,7 +304,7 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
       final response = await http.get(
         apiUrl,
         headers: {
-          ' Authorization ': 'Bearer $token',
+          'Authorization': 'Bearer $token',
         },
       );
       if (response.statusCode == 200) {

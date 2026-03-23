@@ -1,8 +1,7 @@
-import 'dart:convert';
+import 'package:BeatNow/services/api_client.dart';
+import 'package:BeatNow/services/beatnow_service.dart';
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'package:http/http.dart' as http;
-import 'package:BeatNow/Models/UserSingleton.dart';
 
 class LyricEditorPage extends StatefulWidget {
   final String title;
@@ -10,159 +9,100 @@ class LyricEditorPage extends StatefulWidget {
   final int? index;
   final String lyricId;
   final bool isEditing;
-  const LyricEditorPage(
-      {super.key,
-      required this.title,
-      required this.lyric,
-      this.index,
-      this.isEditing = false,
-      this.lyricId = ''});
+
+  const LyricEditorPage({
+    super.key,
+    required this.title,
+    required this.lyric,
+    this.index,
+    this.isEditing = false,
+    this.lyricId = '',
+  });
 
   @override
-  _LyricEditorPageState createState() => _LyricEditorPageState();
+  State<LyricEditorPage> createState() => _LyricEditorPageState();
 }
 
 class _LyricEditorPageState extends State<LyricEditorPage> {
+  final BeatNowService _beatNowService = BeatNowService();
+  final stt.SpeechToText _speech = stt.SpeechToText();
+
   late TextEditingController _titleController;
   late TextEditingController _lyricController;
-  final stt.SpeechToText _speech = stt.SpeechToText();
   bool _isListening = false;
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.title);
     _lyricController = TextEditingController(text: widget.lyric);
-    _checkSpeechAvailability();
+    _speech.initialize();
   }
 
-  Future<void> _checkSpeechAvailability() async {
-    bool available = await _speech.initialize();
-    if (available) {
-      _initializeSpeechToText();
-    } else {
-      print('Speech recognition is not available');
-    }
-  }
-
-  Future<void> _initializeSpeechToText() async {
-    if (!_speech.isAvailable) {
-      print('Speech recognition is not available');
+  Future<void> _toggleListening() async {
+    if (_isListening) {
+      await _speech.stop();
+      setState(() => _isListening = false);
       return;
     }
 
-    await _speech.initialize();
-    if (!_speech.isAvailable) {
-      print('Speech recognition is not available');
+    final available = await _speech.initialize();
+    if (!available) {
+      return;
     }
-  }
 
-  void _listen() async {
-    if (!_isListening) {
-      bool available = await _speech.initialize(
-        onStatus: (val) => print('onStatus: $val'),
-        onError: (val) => print('onError: $val'),
-      );
-      if (available) {
-        _speech.listen(
-          onResult: (val) => setState(() {
-            _lyricController.text = val.recognizedWords;
-          }),
-        );
-      }
-    } else {
-      _speech.stop();
-    }
-    setState(() {
-      _isListening = !_isListening;
-    });
-  }
-
-  void _toggleListening() {
-    if (_isListening) {
-      _stopListening();
-    } else {
-      _startListening();
-    }
-  }
-
-  void _startListening() {
-    _speech.listen(
+    await _speech.listen(
       onResult: (result) {
         setState(() {
           _lyricController.text = result.recognizedWords;
         });
       },
     );
-    setState(() {
-      _isListening = true;
-    });
+
+    setState(() => _isListening = true);
   }
 
-  void _stopListening() {
-    _speech.stop();
-    setState(() {
-      _isListening = false;
-    });
-  }
+  Future<void> _save() async {
+    final title = _titleController.text.trim();
+    final lyrics = _lyricController.text.trim();
 
-  Future<void> saveLyric() async {
-    String apiUrl = "https://api.beatnow.app/v1/api/lyrics/";
-    final token = UserSingleton().token; // get the user token
-
-    final response = await http.post(
-      Uri.parse(apiUrl),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-        'Authorization':
-            'Bearer $token', // include the token in the request headers
-      },
-      body: jsonEncode(<String, String>{
-        'title': _titleController.text,
-        'lyrics': _lyricController.text,
-        'post_id': '664f749c516116a47bb171f3',
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text("Lyric saved!"),
-        duration: Duration(seconds: 2),
-      ));
-    } else {
-      print(
-          'Failed to save lyric. Status code: ${response.statusCode}. Response body: ${response.body}');
-      throw Exception('Failed to save lyric.');
+    if (title.isEmpty || lyrics.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Title and lyrics are required.')),
+      );
+      return;
     }
-  }
 
-  Future<void> updateLyric(String PostId) async {
-    String apiUrl = "https://api.beatnow.app/v1/api/lyrics/$PostId";
-    final token = UserSingleton().token; // get the user token
+    setState(() => _isSaving = true);
 
-    final response = await http.put(
-      Uri.parse(apiUrl),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-        'Authorization':
-            'Bearer $token', // include the token in the request headers
-      },
-      body: jsonEncode(<String, String>{
-        'title': _titleController.text,
-        'lyrics': _lyricController.text,
-        'post_id': '664f749c516116a47bb171f3',
-      }),
-    );
+    try {
+      if (widget.isEditing) {
+        await _beatNowService.updateLyric(
+          lyricId: widget.lyricId,
+          title: title,
+          lyrics: lyrics,
+        );
+      } else {
+        await _beatNowService.createLyric(title: title, lyrics: lyrics);
+      }
 
-    if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text("Lyric Updated Succesfully!"),
-        duration: Duration(seconds: 2),
-      ));
-    } else {
-      print(
-          'Failed to update lyric. Status code: ${response.statusCode}. Response body: ${response.body}');
-      throw Exception('Failed to update lyric.');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(widget.isEditing ? 'Lyric updated.' : 'Lyric saved.'),
+        ),
+      );
+      Navigator.pop(context);
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message)),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
@@ -173,14 +113,14 @@ class _LyricEditorPageState extends State<LyricEditorPage> {
         title: const Text('Lyric Editor'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: () {
-              if (widget.isEditing) {
-                updateLyric(widget.lyricId);
-              } else {
-                saveLyric();
-              }
-            },
+            icon: _isSaving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save),
+            onPressed: _isSaving ? null : _save,
           ),
           IconButton(
             icon: Icon(_isListening ? Icons.mic_off : Icons.mic),
@@ -189,37 +129,34 @@ class _LyricEditorPageState extends State<LyricEditorPage> {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Container(
-              alignment: Alignment.center,
-              child: TextFormField(
-                style: const TextStyle(
-                    fontSize: 20.0,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold),
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  hintText: 'Title',
-                  border: InputBorder.none,
-                  isDense: true,
-                  hintStyle: TextStyle(
-                      fontSize: 20.0,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold),
+            TextFormField(
+              controller: _titleController,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 20,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+              decoration: const InputDecoration(
+                hintText: 'Title',
+                border: InputBorder.none,
+                hintStyle: TextStyle(
+                  fontSize: 20,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
                 ),
-                textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(height: 14.0),
+            const SizedBox(height: 14),
             Expanded(
               child: TextFormField(
                 controller: _lyricController,
                 decoration: const InputDecoration(
                   hintText: 'Type or speak your lyrics here...',
                   border: InputBorder.none,
-                  isDense: true,
                 ),
                 keyboardType: TextInputType.multiline,
                 maxLines: null,

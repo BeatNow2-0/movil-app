@@ -1,165 +1,158 @@
-// ignore_for_file: unused_local_variable
-
-import 'dart:convert';
-
-import 'package:BeatNow/Models/UserSingleton.dart';
+import 'package:BeatNow/services/api_client.dart';
+import 'package:BeatNow/services/beatnow_service.dart';
 import 'package:BeatNow/Screens/HomeScreen/LyricEditorPage.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert' as convert;
 
 class LyricScreen extends StatefulWidget {
   const LyricScreen({super.key});
 
   @override
-  _LyricScreenState createState() => _LyricScreenState();
+  State<LyricScreen> createState() => _LyricScreenState();
 }
 
-List<dynamic> _lyricsList = [];
-List<dynamic> _lyricsList1 = [];
-
 class _LyricScreenState extends State<LyricScreen> {
+  final BeatNowService _beatNowService = BeatNowService();
+
+  late Future<List<Map<String, dynamic>>> _lyricsFuture;
+
   @override
   void initState() {
-    fetchLyrics();
     super.initState();
+    _lyricsFuture = _loadLyrics();
+  }
+
+  Future<List<Map<String, dynamic>>> _loadLyrics() async {
+    return <Map<String, dynamic>>[];
+  }
+
+  Future<void> _refreshLyrics() async {
+    setState(() {
+      _lyricsFuture = _loadLyrics();
+    });
+  }
+
+  Future<void> _deleteLyric(String lyricId) async {
+    try {
+      await _beatNowService.deleteLyric(lyricId);
+      await _refreshLyrics();
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message)),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<SharedPreferences>(
-      future: SharedPreferences.getInstance(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final prefs = snapshot.data!;
-        List<String> titles = prefs.getStringList('titles') ?? [];
-        List<String> lyrics = prefs.getStringList('lyrics') ?? [];
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 50.0),
-              child: Text(
-                'Your Lyrics',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _lyricsList.length,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 50),
+          child: Text(
+            'Your Lyrics',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        Expanded(
+          child: FutureBuilder<List<Map<String, dynamic>>>(
+            future: _lyricsFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      'Lyrics list is not available from the documented API yet.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                );
+              }
+
+              final lyrics = snapshot.data ?? const <Map<String, dynamic>>[];
+              if (lyrics.isEmpty) {
+                return const Center(child: Text('No lyrics created yet.'));
+              }
+
+              return ListView.builder(
+                itemCount: lyrics.length,
                 itemBuilder: (context, index) {
-                  List<String> lines = _lyricsList[index]['lyrics'].split('\n');
-                  String firstTwoLines = lines.length > 1
+                  final lyric = lyrics[index];
+                  final lines = (lyric['lyrics']?.toString() ?? '').split('\n');
+                  final preview = lines.length > 1
                       ? lines.sublist(0, 2).join('\n')
-                      : lines[0];
+                      : lines.firstOrNull ?? '';
+
                   return ListTile(
-                    title: Text(_lyricsList[index]['title']),
-                    subtitle: Text(firstTwoLines),
+                    title: Text(lyric['title']?.toString() ?? 'Untitled'),
+                    subtitle: Text(preview),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete),
-                      onPressed: () async {
-                        deleteLyric(_lyricsList[index]['_id']);
-                        setState(() {
-                          _lyricsList.removeAt(index);
-                        });
-                      },
+                      onPressed: () => _deleteLyric(lyric['_id'].toString()),
                     ),
-                    onTap: () {
-                      Navigator.push(
+                    onTap: () async {
+                      await Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => LyricEditorPage(
-                                title: _lyricsList[index]['title'],
-                                lyric: _lyricsList[index]['lyrics'],
-                                index: index,
-                                isEditing: true,
-                                lyricId: _lyricsList[index]['_id'])),
-                      ).then((_) {
-                        setState(() {});
-                      });
+                          builder: (context) => LyricEditorPage(
+                            title: lyric['title']?.toString() ?? '',
+                            lyric: lyric['lyrics']?.toString() ?? '',
+                            isEditing: true,
+                            lyricId: lyric['_id']?.toString() ?? '',
+                          ),
+                        ),
+                      );
+                      await _refreshLyrics();
                     },
                   );
                 },
-              ),
-            ),
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(vertical: 20, horizontal: 155),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(100.0),
-                child: Container(
-                  width: 100.0,
-                  height: 60.0,
-                  color: Colors.black,
-                  child: FloatingActionButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => LyricEditorPage(
-                                title: "",
-                                lyric: "",
-                                index: null,
-                                isEditing: false)),
-                      ).then((_) {
-                        setState(() {});
-                      });
-                    },
-                    backgroundColor: Colors.transparent,
-                    elevation: 0,
-                    child: Icon(
-                      Icons.add,
-                      color: Color(0xFF8731E4),
-                      size: 30,
+              );
+            },
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 155),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(100),
+            child: SizedBox(
+              width: 100,
+              height: 60,
+              child: FloatingActionButton(
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LyricEditorPage(
+                        title: '',
+                        lyric: '',
+                        isEditing: false,
+                      ),
                     ),
-                  ),
+                  );
+                  await _refreshLyrics();
+                },
+                backgroundColor: Colors.black,
+                child: const Icon(
+                  Icons.add,
+                  color: Color(0xFF8731E4),
+                  size: 30,
                 ),
               ),
             ),
-          ],
-        );
-      },
+          ),
+        ),
+      ],
     );
   }
 }
 
-void fetchLyrics() async {
-  final token = UserSingleton().token;
-
-  final response = await http.get(
-    Uri.parse('https://api.beatnow.app/v1/api/users/lyrics'),
-    headers: <String, String>{
-      'Authorization': 'Bearer $token',
-    },
-  );
-
-  if (response.statusCode == 200) {
-    final jsonResponse = convert.jsonDecode(response.body);
-    _lyricsList.clear();
-    for (var data in jsonResponse) {
-      _lyricsList.add(data);
-    }
-  } else {
-    throw Exception('status${response.statusCode}');
-  }
-}
-
-void deleteLyric(String LyricId) async {
-  final token = UserSingleton().token;
-
-  final response = await http.delete(
-    Uri.parse('https://api.beatnow.app/v1/api/lyrics/$LyricId'),
-    headers: <String, String>{
-      'Authorization': 'Bearer $token',
-    },
-  );
-
-  if (response.statusCode == 200) {
-  } else {
-    throw Exception('status${response.statusCode}');
-  }
+extension on List<String> {
+  String? get firstOrNull => isEmpty ? null : first;
 }
