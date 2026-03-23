@@ -1,4 +1,3 @@
-import 'dart:convert' as convert;
 import 'package:BeatNow/Controllers/auth_controller.dart';
 import 'package:BeatNow/Models/OtherUserSingleton.dart';
 import 'package:BeatNow/Models/Posts.dart';
@@ -8,7 +7,7 @@ import 'package:BeatNow/Screens/HomeScreen/saved_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:http/http.dart' as http;
+import 'package:BeatNow/services/beatnow_service.dart';
 import 'package:audioplayers/audioplayers.dart';
 
 class HomeScreenState extends StatefulWidget {
@@ -22,6 +21,7 @@ class _HomeScreenState extends State<HomeScreenState>
     with WidgetsBindingObserver {
   final AuthController _authController = Get.find<AuthController>();
   late final AudioPlayer _audioPlayer;
+  final BeatNowService _beatNowService = BeatNowService();
 
   final List<Posts> _posts = [];
 
@@ -77,16 +77,14 @@ class _HomeScreenState extends State<HomeScreenState>
 
     try {
       final results = await Future.wait([
-        getPostInfo(),
-        getPostInfo(),
+        _beatNowService.getRandomPost(),
+        _beatNowService.getRandomPost(),
       ]);
 
       if (!mounted) return;
 
       setState(() {
-        for (final json in results) {
-          _posts.add(Posts.fromApi(json));
-        }
+        _posts.addAll(results);
       });
     } catch (e) {
       debugPrint('Load posts error: $e');
@@ -159,6 +157,7 @@ class _HomeScreenState extends State<HomeScreenState>
         UserSingleton().current = index;
 
         _playAudio(_posts[index].audioUrl);
+        _beatNowService.registerView(_posts[index].id);
 
         if (index >= _posts.length - 2) {
           _loadMorePosts();
@@ -333,45 +332,11 @@ class _HomeScreenState extends State<HomeScreenState>
 
   /* ================= API ================= */
 
-  void likePost(String id) async {
-    await http.post(
-      Uri.parse('https://api.beatnow.app/v1/api/interactions/like/$id'),
-      headers: {'Authorization': 'Bearer ${UserSingleton().token}'},
-    );
-  }
+  Future<void> likePost(String id) => _beatNowService.likePost(id);
 
-  void unlikePost(String id) async {
-    await http.delete(
-      Uri.parse('https://api.beatnow.app/v1/api/interactions/unlike/$id'),
-      headers: {'Authorization': 'Bearer ${UserSingleton().token}'},
-    );
-  }
+  Future<void> unlikePost(String id) => _beatNowService.unlikePost(id);
 
-  void savePost(String id) async {
-    await http.post(
-      Uri.parse('https://api.beatnow.app/v1/api/interactions/save/$id'),
-      headers: {'Authorization': 'Bearer ${UserSingleton().token}'},
-    );
-  }
+  Future<void> savePost(String id) => _beatNowService.savePost(id);
 
-  void unsavePost(String id) async {
-    await http.delete(
-      Uri.parse('https://api.beatnow.app/v1/api/interactions/unsave/$id'),
-      headers: {'Authorization': 'Bearer ${UserSingleton().token}'},
-    );
-  }
-}
-
-/* ================= API HELPER ================= */
-
-Future<Map<String, dynamic>> getPostInfo() async {
-  final response = await http.get(
-    Uri.parse('https://api.beatnow.app/v1/api/posts/random'),
-    headers: {'Authorization': 'Bearer ${UserSingleton().token}'},
-  );
-
-  if (response.statusCode == 200) {
-    return convert.jsonDecode(response.body);
-  }
-  throw Exception('Error fetching post');
+  Future<void> unsavePost(String id) => _beatNowService.unsavePost(id);
 }

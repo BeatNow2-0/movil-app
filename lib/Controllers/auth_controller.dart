@@ -1,9 +1,8 @@
-import 'dart:convert';
-
 import 'package:BeatNow/Models/UserSingleton.dart';
+import 'package:BeatNow/services/api_client.dart';
+import 'package:BeatNow/services/auth_service.dart';
+import 'package:BeatNow/services/beatnow_service.dart';
 import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthTabs {
   static const int splash = 0;
@@ -21,7 +20,12 @@ class AuthTabs {
 }
 
 class AuthController extends GetxController {
-  static const String _tokenStorageKey = 'access_token';
+  AuthController({AuthService? authService, BeatNowService? beatNowService})
+      : _authService = authService ?? AuthService(),
+        _beatNowService = beatNowService ?? BeatNowService();
+
+  final AuthService _authService;
+  final BeatNowService _beatNowService;
 
   final selectedIndex = AuthTabs.splash.obs;
   final isLoading = true.obs;
@@ -40,9 +44,7 @@ class AuthController extends GetxController {
   Future<void> checkLogin() async {
     isLoading.value = true;
 
-    final prefs = await SharedPreferences.getInstance();
-    final storedToken = prefs.getString(_tokenStorageKey);
-
+    final storedToken = await _authService.readAccessToken();
     if (storedToken == null || storedToken.isEmpty) {
       await clearSession();
       changeTab(AuthTabs.login);
@@ -51,149 +53,61 @@ class AuthController extends GetxController {
     }
 
     UserSingleton().token = storedToken;
-    final userInfo = await getUserInfo(storedToken);
 
-    if (userInfo == null) {
+    try {
+      final userInfo = await _beatNowService.getCurrentUser();
+      changeTab(
+        userInfo['is_active'] == false
+            ? AuthTabs.codeConfirmation
+            : AuthTabs.home,
+      );
+    } catch (_) {
       await clearSession();
       changeTab(AuthTabs.login);
-    } else if (userInfo['is_active'] == false) {
-      changeTab(AuthTabs.codeConfirmation);
-    } else {
-      changeTab(AuthTabs.home);
+    } finally {
+      isLoading.value = false;
     }
-
-    isLoading.value = false;
   }
 
   Future<bool> loginWithCredentials(String username, String password) async {
     isLoading.value = true;
-    final token = await _token(username, password);
 
-    if (token == null) {
-      isLoading.value = false;
-      return false;
-    }
-
-    final userInfo = await getUserInfo(token);
-    if (userInfo == null) {
+    try {
+      await _authService.login(username: username, password: password);
+      final userInfo = await _beatNowService.getCurrentUser();
+      changeTab(
+        userInfo['is_active'] == false
+            ? AuthTabs.codeConfirmation
+            : AuthTabs.home,
+      );
+      return true;
+    } on ApiException {
       await clearSession();
       changeTab(AuthTabs.login);
-      isLoading.value = false;
       return false;
-    }
-
-    changeTab(
-      userInfo['is_active'] == false
-          ? AuthTabs.codeConfirmation
-          : AuthTabs.home,
-    );
-    isLoading.value = false;
-    return true;
-  }
-
-  Future<Map<String, dynamic>?> getTokenUser(
-    String username,
-    String password,
-  ) async {
-    final apiUrl = Uri.parse('https://api.beatnow.app/token');
-    final body = {'username': username, 'password': password};
-
-    try {
-      final response = await http.post(
-        apiUrl,
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: body,
-      );
-
-      if (response.statusCode != 200 || response.body.isEmpty) {
-        return null;
-      }
-
-      return json.decode(response.body) as Map<String, dynamic>;
-    } catch (_) {
-      return null;
+    } finally {
+      isLoading.value = false;
     }
   }
 
-  Future<String?> _token(String username, String password) async {
-    final response = await getTokenUser(username, password);
-    final token = response?['access_token'] as String?;
-
-    if (token == null || token.isEmpty) {
-      return null;
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenStorageKey, token);
-    UserSingleton().token = token;
-    return token;
-  }
-
-  Future<Map<String, dynamic>?> getUserInfo(String token) async {
-    final apiUrl = Uri.parse('https://api.beatnow.app/v1/api/users/users/me');
-    try {
-      final response = await http.get(
-        apiUrl,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode != 200 || response.body.isEmpty) {
-        return null;
-      }
-
-      final jsonResponse = jsonDecode(response.body) as Map<String, dynamic>;
-      UserSingleton()
-        ..id = jsonResponse['id'] ?? ''
-        ..name = jsonResponse['full_name'] ?? ''
-        ..username = jsonResponse['username'] ?? ''
-        ..email = jsonResponse['email'] ?? ''
-        ..isActive = jsonResponse['is_active'] ?? false;
-      return jsonResponse;
-    } catch (_) {
-      return null;
-    }
-  }
 
   Future<void> sendPasswordMail(String emailAddress) async {
     isLoading.value = true;
-    final response = await resetPassword(emailAddress);
-
-    if (response != null) {
-      Get.snackbar('Success', 'Email sent successfully');
-      changeTab(AuthTabs.login);
-    } else {
-      Get.snackbar('Error', 'Email not sent');
-      changeTab(AuthTabs.forgotPassword);
-    }
-
-    isLoading.value = false;
-  }
-
-  Future<Map<String, dynamic>?> resetPassword(String emailAddress) async {
-    final apiUrl = Uri.parse(
-      'https://api.beatnow.app/v1/api/mail/send-password-reset/?mail=$emailAddress',
-    );
 
     try {
-      final response = await http.post(
-        apiUrl,
-        headers: {'accept': 'application/json'},
-      );
-      if (response.statusCode != 200 || response.body.isEmpty) {
-        return null;
-      }
-      return jsonDecode(response.body) as Map<String, dynamic>;
-    } catch (_) {
-      return null;
+      await _beatNowService.sendPasswordResetEmail(emailAddress);
+      Get.snackbar('Success', 'Email sent successfully');
+      changeTab(AuthTabs.login);
+    } on ApiException catch (error) {
+      Get.snackbar('Error', error.message);
+      changeTab(AuthTabs.forgotPassword);
+    } finally {
+      isLoading.value = false;
     }
   }
 
   Future<void> clearSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenStorageKey);
+    await _authService.logout();
     UserSingleton()
       ..token = ''
       ..id = ''
