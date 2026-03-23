@@ -90,6 +90,22 @@ class AuthController extends GetxController {
     }
   }
 
+
+  Future<void> sendPasswordMail(String emailAddress) async {
+    isLoading.value = true;
+
+    try {
+      await _beatNowService.sendPasswordResetEmail(emailAddress);
+      Get.snackbar('Success', 'Email sent successfully');
+      changeTab(AuthTabs.login);
+    } on ApiException catch (error) {
+      Get.snackbar('Error', error.message);
+      changeTab(AuthTabs.forgotPassword);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   Future<void> clearSession() async {
     await _authService.logout();
     UserSingleton()

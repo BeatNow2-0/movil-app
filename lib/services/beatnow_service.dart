@@ -42,6 +42,16 @@ class BeatNowService {
     await _apiClient.clearTokens();
   }
 
+  Future<void> sendPasswordResetEmail(String email) async {
+    await _apiClient.post(
+      '/mail/send-password-reset/',
+      requiresAuth: false,
+      queryParameters: {'mail': email},
+      headers: {'accept': 'application/json'},
+      body: const {},
+    );
+  }
+
   Future<Posts> getRandomPost() async {
     final json = await _apiClient.get('/posts/random');
     return Posts.fromApi(json);
