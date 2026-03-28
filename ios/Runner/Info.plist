@@ -4,12 +4,6 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Usamos el reconocimiento de voz para ayudarte a escribir letras mediante dictado.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Necesitamos acceso al micrófono para grabar y transcribir tu voz.</string>
-		<key>NSCameraUsageDescription</key>
-	<string>Necesitamos acceso a la camara para hacer una foto</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -32,6 +26,33 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Necesitamos acceso a la camara para hacer una foto</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Necesitamos acceso al micrófono para grabar y transcribir tu voz.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Usamos el reconocimiento de voz para ayudarte a escribir letras mediante dictado.</string>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>flutter</string>
+					<key>UISceneDelegateClassName</key>
+					<string>FlutterSceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>Main</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
