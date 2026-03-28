@@ -5,6 +5,7 @@ import 'package:BeatNow/Models/UserSingleton.dart';
 import 'package:BeatNow/Screens/HomeScreen/LyricEditorPage.dart';
 import 'package:BeatNow/Screens/HomeScreen/LyricScreen.dart';
 import 'package:BeatNow/Screens/HomeScreen/saved_screen.dart';
+import 'package:BeatNow/Screens/ProfileScreen/profileuser_screen.dart';
 import 'package:BeatNow/services/api_client.dart';
 import 'package:BeatNow/services/beatnow_service.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -278,7 +279,9 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
           ? const SavedScreen()
           : _selectedIndex == 1
               ? _buildFeed()
-              : const LyricScreen(),
+              : _selectedIndex == 2
+                  ? const LyricScreen()
+                  : const ProfileScreen(),
       bottomNavigationBar: _buildBottomBar(),
     );
   }
@@ -685,6 +688,12 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
           selectedFontSize: 0,
           unselectedFontSize: 0,
           onTap: (index) {
+            if (index == 3) {
+              _audioPlayer.stop();
+              _authController.changeTab(AuthTabs.profile);
+              return;
+            }
+
             setState(() {
               _selectedIndex = index;
               _audioPlayer.stop();
@@ -699,9 +708,10 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
               label: '',
             ),
             BottomNavigationBarItem(
-              icon: Icon(
-                Icons.play_circle_fill_rounded,
-                size: 34,
+              icon: Image.asset(
+                'assets/images/icono_central_blanco.png',
+                width: 28,
+                height: 28,
                 color: _selectedIndex == 1 ? const Color(0xFF8731E4) : Colors.white,
               ),
               label: '',
@@ -710,6 +720,13 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
               icon: Icon(
                 Icons.edit_note_rounded,
                 color: _selectedIndex == 2 ? const Color(0xFF8731E4) : Colors.white,
+              ),
+              label: '',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(
+                Icons.person_rounded,
+                color: Colors.white,
               ),
               label: '',
             ),
