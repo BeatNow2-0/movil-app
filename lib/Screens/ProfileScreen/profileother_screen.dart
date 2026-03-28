@@ -1,11 +1,9 @@
-import 'dart:convert';
 import 'package:BeatNow/Models/OtherUserSingleton.dart';
-import 'package:BeatNow/Models/UserSingleton.dart';
+import 'package:BeatNow/Models/Posts.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:BeatNow/services/api_client.dart';
 import 'package:BeatNow/services/beatnow_service.dart';
-import 'package:http/http.dart' as http;
 import '../../Controllers/auth_controller.dart'; // Ajusta la importación según la estructura de tu proyecto
 
 class ProfileOtherScreen extends StatefulWidget {
@@ -17,10 +15,9 @@ class ProfileOtherScreen extends StatefulWidget {
 
 class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
   final AuthController _authController = Get.find<AuthController>();
-  final userSingleton = OtherUserSingleton();
   final BeatNowService _beatNowService = BeatNowService();
   bool _isFollowingUser = false;
-  List<dynamic>? _posts;
+  List<Posts>? _posts;
   Map<String, int>? _followersFollowing;
 
   @override
@@ -32,56 +29,33 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
   Future<void> _initializeProfileData() async {
     await _fetchUserPosts(OtherUserSingleton().username);
     _followersFollowing = await _fetchFollowersFollowing(OtherUserSingleton().id);
-    _isFollowingUser = await _isFollowing(OtherUserSingleton().id) == 1;
+    _isFollowingUser = await _isFollowing(OtherUserSingleton().id);
     setState(() {});
   }
 
   Future<void> _fetchUserPosts(String username) async {
-    Uri apiUrl =
-        Uri.parse('https://api.beatnow.app/v1/api/users/posts/$username');
-    final token = UserSingleton().token;
-
     try {
-      final response = await http.get(
-        apiUrl,
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      );
-      if (response.statusCode == 200) {
-        final jsonResponse = json.decode(response.body);
-                setState(() {
-          _posts = jsonResponse;
-        });
-      } else {
-        throw Exception('Failed to load posts: ${response.statusCode}');
-      }
+      final posts = await _beatNowService.getUserPosts(username);
+      if (!mounted) return;
+      setState(() {
+        _posts = posts;
+      });
     } catch (error) {
       debugPrint('Error fetching user posts: $error');
+      if (!mounted) return;
+      setState(() {
+        _posts = <Posts>[];
+      });
     }
   }
 
   Future<Map<String, int>> _fetchFollowersFollowing(String userId) async {
-    Uri apiUrl =
-        Uri.parse('https://api.beatnow.app/v1/api/users/profile/$userId');
-    final token = UserSingleton().token;
-
     try {
-      final response = await http.get(
-        apiUrl,
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      );
-      if (response.statusCode == 200) {
-        final jsonResponse = json.decode(response.body);
-        return {
-          'followers': jsonResponse['followers'],
-          'following': jsonResponse['following'],
-        };
-      } else {
-        throw Exception('Failed to load followers and following');
-      }
+      final jsonResponse = await _beatNowService.getUserProfile(userId);
+      return {
+        'followers': _asInt(jsonResponse['followers']),
+        'following': _asInt(jsonResponse['following']),
+      };
     } catch (error) {
       debugPrint('Error fetching followers and following: $error');
       return {
@@ -249,15 +223,15 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
                       itemCount: _posts!.length,
                       itemBuilder: (context, index) {
                         final post = _posts![index];
-                        print(
-                            'Post: $post'); // Debugging line to print each post
-                        return Container(
-                          decoration: BoxDecoration(
-                            image: DecorationImage(
-                              image: NetworkImage(
-                                'https://res.beatnow.app/beatnow/${post['user_id']}/posts/${post['_id']}/caratula.${post['cover_format'] ?? 'jpg'}',
-                              ),
-                              fit: BoxFit.cover,
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Image.network(
+                            post.coverImageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: Colors.white.withValues(alpha: 0.08),
+                              alignment: Alignment.center,
+                              child: const Icon(Icons.music_note_rounded, color: Colors.white54),
                             ),
                           ),
                         );
@@ -295,27 +269,19 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
     );
   }
 
-  Future<int> _isFollowing(String userId) async {
-    Uri apiUrl =
-        Uri.parse('https://api.beatnow.app/v1/api/users/profile/$userId');
-    final token = userSingleton.token;
-
+  Future<bool> _isFollowing(String userId) async {
     try {
-      final response = await http.get(
-        apiUrl,
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      );
-      if (response.statusCode == 200) {
-        final jsonResponse = json.decode(response.body);
-        return jsonResponse['is_following'];
-      } else {
-        throw Exception('Failed to load followers and following');
-      }
+      final jsonResponse = await _beatNowService.getUserProfile(userId);
+      return jsonResponse['is_following'] == true;
     } catch (error) {
       debugPrint('Error fetching followers and following: $error');
-      return 0; // En caso de error, retorna valores predeterminados
+      return false; // En caso de error, retorna valores predeterminados
     }
+  }
+
+  int _asInt(dynamic value) {
+    if (value is int) return value;
+    if (value is double) return value.round();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 }
