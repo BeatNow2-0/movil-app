@@ -99,9 +99,9 @@ class _LyricScreenState extends State<LyricScreen> {
                 return Container(
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white.withOpacity(0.08)),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,7 +120,7 @@ class _LyricScreenState extends State<LyricScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.05),
+                            color: Colors.white.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
@@ -164,22 +164,26 @@ class _LyricScreenState extends State<LyricScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const LyricEditorPage(
-                title: '',
-                lyric: '',
-                isEditing: false,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 92, right: 4),
+        child: FloatingActionButton(
+          onPressed: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const LyricEditorPage(
+                  title: '',
+                  lyric: '',
+                  isEditing: false,
+                ),
               ),
-            ),
-          );
-          await _refreshLyrics();
-        },
-        backgroundColor: const Color(0xFF111111),
-        child: const Icon(Icons.add, color: Color(0xFF8731E4)),
+            );
+            await _refreshLyrics();
+          },
+          backgroundColor: const Color(0xFF111111),
+          child: const Icon(Icons.add, color: Color(0xFF8731E4)),
+        ),
       ),
     );
   }

@@ -52,6 +52,23 @@ class BeatNowService {
   }
 
   Future<List<Posts>> getRandomFeedPosts({int count = 6, Set<String>? excludeIds}) async {
+    try {
+      final response = await _apiClient.getList(
+        '/posts/feed',
+        queryParameters: {
+          'limit': count.toString(),
+          if (excludeIds != null && excludeIds.isNotEmpty) 'exclude_ids': excludeIds.join(','),
+        },
+      );
+
+      final posts = response.whereType<Map<String, dynamic>>().map(Posts.fromApi).toList();
+      if (posts.isNotEmpty) {
+        return posts;
+      }
+    } on ApiException {
+      // Fallback to the legacy random endpoint so older deployments still work.
+    }
+
     final posts = <Posts>[];
     final seenIds = <String>{...?excludeIds};
     var attempts = 0;
@@ -59,9 +76,13 @@ class BeatNowService {
 
     while (posts.length < count && attempts < maxAttempts) {
       attempts += 1;
-      final post = await getRandomPost();
-      if (seenIds.add(post.id)) {
-        posts.add(post);
+      try {
+        final post = await getRandomPost();
+        if (seenIds.add(post.id)) {
+          posts.add(post);
+        }
+      } on ApiException {
+        break;
       }
     }
 
