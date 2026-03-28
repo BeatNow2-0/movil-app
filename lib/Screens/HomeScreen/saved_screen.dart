@@ -1,114 +1,148 @@
 import 'package:BeatNow/Models/SavedPost.dart';
+import 'package:BeatNow/services/api_client.dart';
+import 'package:BeatNow/services/beatnow_service.dart';
 import 'package:flutter/material.dart';
-import 'package:BeatNow/Models/UserSingleton.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert' as convert;
 
 class SavedScreen extends StatefulWidget {
   const SavedScreen({super.key});
 
   @override
-  _SavedScreen createState() => _SavedScreen();
+  State<SavedScreen> createState() => _SavedScreenState();
 }
 
-class _SavedScreen extends State<SavedScreen> {
-  late Future<List<SavedPost>> _savedPosts;
+class _SavedScreenState extends State<SavedScreen> {
+  final BeatNowService _beatNowService = BeatNowService();
+  late Future<List<SavedPost>> _savedPostsFuture;
 
   @override
   void initState() {
     super.initState();
-    _savedPosts = getSavedPosts();
+    _savedPostsFuture = _beatNowService.getSavedPosts();
+  }
+
+  Future<void> _refresh() async {
+    setState(() {
+      _savedPostsFuture = _beatNowService.getSavedPosts();
+    });
+    await _savedPostsFuture;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF050505),
       appBar: AppBar(
         title: const Text(
           'Saved Beats',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-            color: Colors.white,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
         ),
         centerTitle: true,
+        backgroundColor: const Color(0xFF050505),
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF121212), // sombra más oscura
-              Color(0xFF0D0D0D), // incluso más oscura
-            ],
-            stops: [0.5, 1.0], // dónde comenzar y terminar cada color
-          ),
-        ),
-        child: FutureBuilder<List<SavedPost>>(
-          future: _savedPosts,
-          builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              return GridView.builder(
-                padding: const EdgeInsets.all(10.0),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  mainAxisSpacing: 10.0,
-                  crossAxisSpacing: 10.0,
-                  childAspectRatio: 0.5, // Proporción 2:1 (alto:ancho)
+      body: FutureBuilder<List<SavedPost>>(
+        future: _savedPostsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            final message = snapshot.error is ApiException
+                ? (snapshot.error as ApiException).message
+                : 'Could not load saved beats.';
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(message, style: const TextStyle(color: Colors.white70)),
+              ),
+            );
+          }
+
+          final savedPosts = snapshot.data ?? const <SavedPost>[];
+          if (savedPosts.isEmpty) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text(
+                  'You have not saved any beats yet.',
+                  style: TextStyle(color: Colors.white70),
+                  textAlign: TextAlign.center,
                 ),
-                itemCount: snapshot.data!.length,
-                itemBuilder: (context, index) {
-                  return Container(
+              ),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+              itemCount: savedPosts.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 14),
+              itemBuilder: (context, index) {
+                final post = savedPosts[index];
+                return Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    image: DecorationImage(
+                      image: NetworkImage(
+                        post.coverImageUrl ??
+                            'https://res.beatnow.app/beatnow/'
+                                '${post.creatorId ?? post.userId}/posts/${post.postId}/caratula.'
+                                '${post.coverFormat ?? 'jpg'}',
+                      ),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: NetworkImage(
-                          snapshot.data![index].coverImageUrl ??
-                              'https://res.beatnow.app/beatnow/'
-                                  '${snapshot.data![index].creatorId ?? snapshot.data![index].userId}'
-                                  '/posts/${snapshot.data![index].postId}/caratula.'
-                                  '${snapshot.data![index].coverFormat ?? 'jpg'}',
-                        ),
-                        fit: BoxFit.cover,
+                      borderRadius: BorderRadius.circular(24),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color.fromRGBO(0, 0, 0, 0.05),
+                          Color.fromRGBO(0, 0, 0, 0.7),
+                        ],
                       ),
                     ),
-                  );
-                },
-              );
-            } else if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
-            }
-
-            // Por defecto, muestra un loading spinner.
-            return const Center(child: CircularProgressIndicator());
-          },
-        ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 130),
+                        Text(
+                          'Saved beat',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.72),
+                            fontSize: 12,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          post.postId,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Saved on ${post.savedDate.split('T').first}',
+                          style: TextStyle(color: Colors.white.withOpacity(0.7)),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        },
       ),
     );
-  }
-
-  Future<List<SavedPost>> getSavedPosts() async {
-    const apiUrl = 'https://api.beatnow.app/v1/api/users/saved-posts';
-    final token = UserSingleton().token;
-    final response = await http.get(
-      Uri.parse(apiUrl),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final jsonResponse = convert.jsonDecode(response.body);
-      if (jsonResponse['saved_posts'] is List) {
-        return jsonResponse['saved_posts']
-            .map<SavedPost>((item) => SavedPost.fromJson(item))
-            .toList();
-      } else {
-        throw Exception('Saved posts is not a list');
-      }
-    } else {
-      throw Exception('Failed to fetch post information');
-    }
   }
 }

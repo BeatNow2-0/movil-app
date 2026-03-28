@@ -1,7 +1,10 @@
 import 'package:BeatNow/Models/OtherUserSingleton.dart';
 import 'package:BeatNow/Models/Posts.dart';
+import 'package:BeatNow/Models/SavedPost.dart';
 import 'package:BeatNow/Models/UserSingleton.dart';
 import 'package:BeatNow/services/api_client.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 class BeatNowService {
   BeatNowService({ApiClient? apiClient}) : _apiClient = apiClient ?? ApiClient();
@@ -39,6 +42,32 @@ class BeatNowService {
     return json;
   }
 
+  Future<Map<String, dynamic>> getUserProfile(String userId) => _apiClient.get('/users/profile/$userId');
+
+  Future<List<dynamic>> getUserPostsRaw(String username) => _apiClient.getList('/users/posts/$username');
+
+  Future<List<Posts>> getUserPosts(String username) async {
+    final response = await getUserPostsRaw(username);
+    return response.whereType<Map<String, dynamic>>().map(Posts.fromApi).toList();
+  }
+
+  Future<List<Posts>> getRandomFeedPosts({int count = 6, Set<String>? excludeIds}) async {
+    final posts = <Posts>[];
+    final seenIds = <String>{...?excludeIds};
+    var attempts = 0;
+    final maxAttempts = count * 4;
+
+    while (posts.length < count && attempts < maxAttempts) {
+      attempts += 1;
+      final post = await getRandomPost();
+      if (seenIds.add(post.id)) {
+        posts.add(post);
+      }
+    }
+
+    return posts;
+  }
+
   Future<void> deleteAccount() async {
     await _apiClient.delete('/users/delete');
     await _apiClient.clearTokens();
@@ -72,6 +101,18 @@ class BeatNowService {
     return Posts.fromApi(json);
   }
 
+  Future<List<SavedPost>> getSavedPosts() async {
+    final json = await _apiClient.get('/users/saved-posts');
+    final savedPosts = json['saved_posts'];
+    if (savedPosts is List) {
+      return savedPosts
+          .whereType<Map<String, dynamic>>()
+          .map(SavedPost.fromJson)
+          .toList();
+    }
+    return <SavedPost>[];
+  }
+
   Future<void> likePost(String postId) => _apiClient.post('/interactions/like/$postId');
   Future<void> unlikePost(String postId) => _apiClient.delete('/interactions/unlike/$postId');
   Future<void> savePost(String postId) => _apiClient.post('/interactions/save/$postId');
@@ -88,6 +129,11 @@ class BeatNowService {
       'search': query,
       ...?filters,
     });
+    return response.whereType<Map<String, dynamic>>().toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getUserLyrics() async {
+    final response = await _apiClient.getList('/lyrics/user');
     return response.whereType<Map<String, dynamic>>().toList();
   }
 
@@ -121,6 +167,25 @@ class BeatNowService {
 
   Future<void> followUser(String userId) => _apiClient.post('/follows/follow/$userId');
   Future<void> unfollowUser(String userId) => _apiClient.delete('/follows/unfollow/$userId');
+
+  Future<void> changeProfilePhoto(String filePath) async {
+    final uri = Uri.https('api.beatnow.app', '/v1/api/users/change_photo_profile');
+    final request = http.MultipartRequest('PUT', uri)
+      ..headers['Authorization'] = 'Bearer ${UserSingleton().token}'
+      ..files.add(await http.MultipartFile.fromPath(
+        'file',
+        filePath,
+        contentType: MediaType('image', 'jpeg'),
+      ));
+
+    final response = await request.send();
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final body = await response.stream.bytesToString();
+      throw ApiException('Failed to upload profile image', statusCode: response.statusCode, responseBody: body);
+    }
+  }
+
+  Future<void> deleteProfilePhoto() => _apiClient.delete('/users/delete_photo_profile');
 
   void setOtherUserFromSearchResult(Map<String, dynamic> user) {
     OtherUserSingleton()

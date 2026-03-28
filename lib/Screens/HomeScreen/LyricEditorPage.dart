@@ -9,6 +9,8 @@ class LyricEditorPage extends StatefulWidget {
   final int? index;
   final String lyricId;
   final bool isEditing;
+  final String associatedPostId;
+  final String associatedBeatTitle;
 
   const LyricEditorPage({
     super.key,
@@ -17,6 +19,8 @@ class LyricEditorPage extends StatefulWidget {
     this.index,
     this.isEditing = false,
     this.lyricId = '',
+    this.associatedPostId = '',
+    this.associatedBeatTitle = '',
   });
 
   @override
@@ -82,16 +86,19 @@ class _LyricEditorPageState extends State<LyricEditorPage> {
           lyricId: widget.lyricId,
           title: title,
           lyrics: lyrics,
+          postId: widget.associatedPostId.isEmpty ? null : widget.associatedPostId,
         );
       } else {
-        await _beatNowService.createLyric(title: title, lyrics: lyrics);
+        await _beatNowService.createLyric(
+          title: title,
+          lyrics: lyrics,
+          postId: widget.associatedPostId.isEmpty ? null : widget.associatedPostId,
+        );
       }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(widget.isEditing ? 'Lyric updated.' : 'Lyric saved.'),
-        ),
+        SnackBar(content: Text(widget.isEditing ? 'Lyric updated.' : 'Lyric saved.')),
       );
       Navigator.pop(context);
     } on ApiException catch (error) {
@@ -109,7 +116,9 @@ class _LyricEditorPageState extends State<LyricEditorPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF050505),
       appBar: AppBar(
+        backgroundColor: const Color(0xFF050505),
         title: const Text('Lyric Editor'),
         actions: [
           IconButton(
@@ -131,23 +140,32 @@ class _LyricEditorPageState extends State<LyricEditorPage> {
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (widget.associatedPostId.isNotEmpty) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Text(
+                  widget.associatedBeatTitle.isNotEmpty
+                      ? 'Associated beat: ${widget.associatedBeatTitle}'
+                      : 'Associated beat: ${widget.associatedPostId}',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             TextFormField(
               controller: _titleController,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 20,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold),
               decoration: const InputDecoration(
                 hintText: 'Title',
                 border: InputBorder.none,
-                hintStyle: TextStyle(
-                  fontSize: 20,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+                hintStyle: TextStyle(fontSize: 22, color: Colors.white54, fontWeight: FontWeight.bold),
               ),
             ),
             const SizedBox(height: 14),
@@ -157,7 +175,9 @@ class _LyricEditorPageState extends State<LyricEditorPage> {
                 decoration: const InputDecoration(
                   hintText: 'Type or speak your lyrics here...',
                   border: InputBorder.none,
+                  hintStyle: TextStyle(color: Colors.white54),
                 ),
+                style: const TextStyle(color: Colors.white, height: 1.6),
                 keyboardType: TextInputType.multiline,
                 maxLines: null,
               ),
