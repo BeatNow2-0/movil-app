@@ -106,7 +106,7 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
       debugPrint('View register error: $error');
     }
 
-    if (index >= _posts.length - 2) {
+    if (index >= _posts.length - 3) {
       _loadMorePosts();
     }
 
@@ -299,85 +299,81 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
 
     return Stack(
       children: [
-        RefreshIndicator(
-          onRefresh: () async {
-            _posts.clear();
-            _currentIndex = 0;
-            await _loadInitialPosts();
+        PageView.builder(
+          controller: _pageController,
+          scrollDirection: Axis.vertical,
+          physics: const PageScrollPhysics(),
+          padEnds: false,
+          itemCount: _posts.length,
+          onPageChanged: _activatePost,
+          itemBuilder: (_, index) {
+            final post = _posts[index];
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _togglePlayback(post),
+                  onDoubleTap: () => _toggleLike(post, index),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.network(
+                        post.coverImageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(color: Colors.black),
+                      ),
+                      Container(
+                        color: Colors.black.withValues(alpha: 0.14),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color.fromRGBO(0, 0, 0, 0.24),
+                        Colors.transparent,
+                        Color.fromRGBO(0, 0, 0, 0.28),
+                        Color.fromRGBO(0, 0, 0, 0.9),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 104,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(child: _buildPostInfo(post)),
+                      const SizedBox(width: 16),
+                      _buildActions(post, index),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 88,
+                  child: Center(
+                    child: Container(
+                      width: 38,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
           },
-          child: PageView.builder(
-            controller: _pageController,
-            scrollDirection: Axis.vertical,
-            itemCount: _posts.length,
-            onPageChanged: _activatePost,
-            itemBuilder: (_, index) {
-              final post = _posts[index];
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  GestureDetector(
-                    onTap: () => _togglePlayback(post),
-                    onDoubleTap: () => _toggleLike(post, index),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Image.network(
-                          post.coverImageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(color: Colors.black),
-                        ),
-                        Container(
-                          color: Colors.black.withValues(alpha: 0.14),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Color.fromRGBO(0, 0, 0, 0.24),
-                          Colors.transparent,
-                          Color.fromRGBO(0, 0, 0, 0.28),
-                          Color.fromRGBO(0, 0, 0, 0.9),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 16,
-                    right: 16,
-                    bottom: 104,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Expanded(child: _buildPostInfo(post)),
-                        const SizedBox(width: 16),
-                        _buildActions(post, index),
-                      ],
-                    ),
-                  ),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 88,
-                    child: Center(
-                      child: Container(
-                        width: 38,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
         ),
         _buildTopChrome(),
         if (_showPlayHint)
