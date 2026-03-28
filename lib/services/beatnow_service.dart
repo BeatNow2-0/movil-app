@@ -33,6 +33,8 @@ class BeatNowService {
       ..name = json['full_name']?.toString() ?? ''
       ..username = json['username']?.toString() ?? ''
       ..email = json['email']?.toString() ?? ''
+      ..profileImageUrl = json['profile_image_url']?.toString() ??
+          'https://res.beatnow.app/beatnow/${json['id']?.toString() ?? ''}/photo_profile/photo_profile.png'
       ..isActive = json['is_active'] == true;
     return json;
   }
@@ -44,11 +46,24 @@ class BeatNowService {
 
   Future<void> sendPasswordResetEmail(String email) async {
     await _apiClient.post(
-      '/mail/send-password-reset/',
+      '/mail/send-password-reset',
       requiresAuth: false,
-      queryParameters: {'mail': email},
       headers: {'accept': 'application/json'},
+      body: {'email': email},
+    );
+  }
+
+  Future<void> sendConfirmationEmail() async {
+    await _apiClient.post(
+      '/mail/send-confirmation',
       body: const {},
+    );
+  }
+
+  Future<void> confirmEmailCode(String code) async {
+    await _apiClient.post(
+      '/mail/confirmation',
+      body: {'code': code},
     );
   }
 
@@ -70,7 +85,7 @@ class BeatNowService {
 
   Future<List<Map<String, dynamic>>> searchPosts(String query, {Map<String, dynamic>? filters}) async {
     final response = await _apiClient.getList('/search/search_posts', queryParameters: {
-      'query': query,
+      'search': query,
       ...?filters,
     });
     return response.whereType<Map<String, dynamic>>().toList();
@@ -111,6 +126,8 @@ class BeatNowService {
     OtherUserSingleton()
       ..id = user['id']?.toString() ?? user['_id']?.toString() ?? ''
       ..username = user['username']?.toString() ?? ''
-      ..name = user['full_name']?.toString() ?? '';
+      ..name = user['full_name']?.toString() ?? ''
+      ..profileImageUrl = user['profile_image_url']?.toString() ??
+          'https://res.beatnow.app/beatnow/${user['id']?.toString() ?? user['_id']?.toString() ?? ''}/photo_profile/photo_profile.png';
   }
 }

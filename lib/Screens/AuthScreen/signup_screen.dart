@@ -200,12 +200,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
         password: password,
       );
 
+      final loggedIn = await _authController.loginWithCredentials(username, password);
+
       if (!mounted) {
         return;
       }
 
-      _showMessage('Account created. Please sign in.');
-      _authController.changeTab(AuthTabs.login);
+      if (loggedIn) {
+        _showMessage('Account created. Check your email for the verification code.');
+      } else {
+        _showMessage('Account created. Please sign in.');
+        _authController.changeTab(AuthTabs.login);
+      }
     } on ApiException catch (error) {
       if (mounted) {
         _showMessage(error.message);

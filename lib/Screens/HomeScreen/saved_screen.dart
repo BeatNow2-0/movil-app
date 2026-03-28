@@ -1,6 +1,5 @@
 import 'package:BeatNow/Models/SavedPost.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:BeatNow/Models/UserSingleton.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert' as convert;
@@ -65,7 +64,12 @@ class _SavedScreen extends State<SavedScreen> {
                     decoration: BoxDecoration(
                       image: DecorationImage(
                         image: NetworkImage(
-                            'https://res.beatnow.app/beatnow/${snapshot.data![index].userId}/posts/${snapshot.data![index].postId}/caratula.jpg'),
+                          snapshot.data![index].coverImageUrl ??
+                              'https://res.beatnow.app/beatnow/'
+                                  '${snapshot.data![index].creatorId ?? snapshot.data![index].userId}'
+                                  '/posts/${snapshot.data![index].postId}/caratula.'
+                                  '${snapshot.data![index].coverFormat ?? 'jpg'}',
+                        ),
                         fit: BoxFit.cover,
                       ),
                     ),

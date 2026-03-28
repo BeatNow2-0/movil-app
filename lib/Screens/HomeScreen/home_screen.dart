@@ -199,6 +199,7 @@ class _HomeScreenState extends State<HomeScreenState>
             onTap: () {
               OtherUserSingleton().username = post.username;
               OtherUserSingleton().id = post.userId;
+              OtherUserSingleton().profileImageUrl = post.userPhotoProfile;
               _authController.changeTab(AuthTabs.otherProfile);
             },
             child: CircleAvatar(
@@ -228,6 +229,8 @@ class _HomeScreenState extends State<HomeScreenState>
                 saved: post.saved,
                 audioFormat: post.audioFormat,
                 userPhotoProfile: post.userPhotoProfile,
+                coverImage: post.coverImageUrl,
+                audioSourceUrl: post.audioUrl,
               );
 
               setState(() {
@@ -261,6 +264,8 @@ class _HomeScreenState extends State<HomeScreenState>
                 saved: !post.saved,
                 audioFormat: post.audioFormat,
                 userPhotoProfile: post.userPhotoProfile,
+                coverImage: post.coverImageUrl,
+                audioSourceUrl: post.audioUrl,
               );
 
               setState(() {

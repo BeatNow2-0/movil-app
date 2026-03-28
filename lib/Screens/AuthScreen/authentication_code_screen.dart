@@ -1,11 +1,9 @@
-import 'dart:convert';
-
 import 'package:BeatNow/Controllers/auth_controller.dart';
-import 'package:BeatNow/Models/UserSingleton.dart';
+import 'package:BeatNow/services/api_client.dart';
+import 'package:BeatNow/services/beatnow_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
 import 'package:pin_code_fields/pin_code_fields.dart';
 
 class CodeConfirmationScreen extends StatefulWidget {
@@ -17,7 +15,11 @@ class CodeConfirmationScreen extends StatefulWidget {
 
 class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
   final AuthController _authController = Get.find<AuthController>();
+  final BeatNowService _beatNowService = BeatNowService();
   final TextEditingController _codeController = TextEditingController();
+
+  bool _submitting = false;
+  bool _resending = false;
 
   @override
   void dispose() {
@@ -27,7 +29,7 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final ButtonStyle buttonStyle = ElevatedButton.styleFrom(
+    final buttonStyle = ElevatedButton.styleFrom(
       backgroundColor: const Color(0xFF3C0F4B),
       minimumSize: const Size(double.infinity, 56),
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -72,6 +74,12 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
                     fontFamily: 'Franklin Gothic Demi',
                   ),
                 ),
+                const SizedBox(height: 12.0),
+                const Text(
+                  'We sent a 6-digit code to your email address.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70),
+                ),
                 const SizedBox(height: 20.0),
                 PinCodeTextField(
                   appContext: context,
@@ -99,11 +107,23 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
                 ),
                 const SizedBox(height: 20.0),
                 ElevatedButton(
-                  onPressed: () {
-                    _submitCode(_codeController.text, context);
-                  },
+                  onPressed: _submitting ? null : _submitCode,
                   style: buttonStyle,
-                  child: const Text('Submit'),
+                  child: _submitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Submit'),
+                ),
+                const SizedBox(height: 12.0),
+                TextButton(
+                  onPressed: _resending ? null : _resendCode,
+                  child: Text(
+                    _resending ? 'Sending...' : 'Resend code',
+                    style: const TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             ),
@@ -113,42 +133,43 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
     );
   }
 
-  Future<void> _submitCode(String code, BuildContext context) async {
-    final token = UserSingleton().token;
-    final response = await _sendCodeToApi(token, code);
+  Future<void> _submitCode() async {
+    final code = _codeController.text.trim();
+    if (code.length != 6) {
+      _showMessage('Enter the 6-digit code.');
+      return;
+    }
 
-    if (response['message'] == 'Ok') {
-      _authController.changeTab(AuthTabs.home);
-    } else {
-      _showErrorSnackBar('Invalid code', context);
+    setState(() => _submitting = true);
+    try {
+      await _beatNowService.confirmEmailCode(code);
+      if (!mounted) return;
+      await _authController.checkLogin();
+      _showMessage('Email verified successfully.');
+    } on ApiException catch (error) {
+      _showMessage(error.message);
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
     }
   }
 
-  Future<Map<String, dynamic>> _sendCodeToApi(String token, String code) async {
-    final apiUrl = Uri.parse(
-      'https://api.beatnow.app/v1/api/mail/confirmation/?code=$code',
-    );
-
+  Future<void> _resendCode() async {
+    setState(() => _resending = true);
     try {
-      final response = await http.post(
-        apiUrl,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-          'accept': 'application/json',
-        },
-        body: '',
-      );
-
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body) as Map<String, dynamic>;
+      await _beatNowService.sendConfirmationEmail();
+      _showMessage('A new code has been sent.');
+    } on ApiException catch (error) {
+      _showMessage(error.message);
+    } finally {
+      if (mounted) {
+        setState(() => _resending = false);
       }
-    } catch (_) {}
-
-    return {'message': 'Error'};
+    }
   }
 
-  void _showErrorSnackBar(String message, BuildContext context) {
+  void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(

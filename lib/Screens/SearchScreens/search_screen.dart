@@ -198,7 +198,9 @@ class _SearchScreenState extends State<SearchScreen> {
           _userSearchResults = results
               .map((user) => {
                     '_id': (user['_id'] ?? user['id']).toString(),
-                    'username': user['username'].toString()
+                    'username': user['username'].toString(),
+                    'full_name': user['full_name']?.toString(),
+                    'profile_image_url': user['profile_image_url']?.toString(),
                   })
               .toList();
         });
@@ -220,11 +222,11 @@ class _SearchScreenState extends State<SearchScreen> {
         final user = _userSearchResults[index];
         return ListTile(
           leading: CircleAvatar(
-            // Se añade un CircleAvatar como widget leading
-            backgroundImage: NetworkImage("https://res.beatnow.app/beatnow/" +
-                user['_id'] +
-                "/photo_profile/photo_profile.png"),
-            radius: 20, // Tamaño del avatar
+            backgroundImage: NetworkImage(
+              user['profile_image_url']?.toString() ??
+                  "https://res.beatnow.app/beatnow/${user['_id']}/photo_profile/photo_profile.png",
+            ),
+            radius: 20,
           ),
           title: Text('@' + user['username']!),
           onTap: () {

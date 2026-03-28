@@ -10,6 +10,8 @@ class Posts {
   final bool saved;
   final String audioFormat;
   final String userPhotoProfile;
+  final String coverImage;
+  final String audioSourceUrl;
 
   Posts({
     required this.id,
@@ -23,6 +25,8 @@ class Posts {
     required this.saved,
     required this.audioFormat,
     required this.userPhotoProfile,
+    required this.coverImage,
+    required this.audioSourceUrl,
   });
 
   factory Posts.fromApi(Map<String, dynamic> json) {
@@ -40,14 +44,16 @@ class Posts {
       saved: json['isSaved'] ?? false,
       userId: userId,
       audioFormat: json['audio_format'] ?? 'mp3',
-      userPhotoProfile:
+      userPhotoProfile: json['profile_image_url'] ??
           'https://res.beatnow.app/beatnow/$userId/photo_profile/photo_profile.png',
+      coverImage: json['cover_image_url'] ??
+          'https://res.beatnow.app/beatnow/$userId/posts/$postId/caratula.${json['cover_format'] ?? 'jpg'}',
+      audioSourceUrl: json['audio_url'] ??
+          'https://res.beatnow.app/beatnow/$userId/posts/$postId/audio.${json['audio_format'] ?? 'mp3'}',
     );
   }
 
-  String get coverImageUrl =>
-      'https://res.beatnow.app/beatnow/$userId/posts/$id/caratula.jpg';
+  String get coverImageUrl => coverImage;
 
-  String get audioUrl =>
-      'https://res.beatnow.app/beatnow/$userId/posts/$id/audio.$audioFormat';
+  String get audioUrl => audioSourceUrl;
 }

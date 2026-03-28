@@ -135,7 +135,7 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
                   child: CircleAvatar(
                     radius: 50,
                     backgroundImage: NetworkImage(
-                      "https://res.beatnow.app/beatnow/${OtherUserSingleton().id}/photo_profile/photo_profile.png",
+                      OtherUserSingleton().profileImageUrl,
                     ),
                   ),
                 ),
@@ -255,7 +255,7 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
                           decoration: BoxDecoration(
                             image: DecorationImage(
                               image: NetworkImage(
-                                'https://res.beatnow.app/beatnow/${post['user_id']}/posts/${post['_id']}/caratula.jpg',
+                                'https://res.beatnow.app/beatnow/${post['user_id']}/posts/${post['_id']}/caratula.${post['cover_format'] ?? 'jpg'}',
                               ),
                               fit: BoxFit.cover,
                             ),

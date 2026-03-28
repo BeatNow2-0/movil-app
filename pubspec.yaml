@@ -26,6 +26,7 @@ dependencies:
   cached_network_image: ^3.0.0
   flutter_soloud: ^3.4.5
   google_fonts: ^6.3.2
+  http_parser: ^4.1.2
   regexed_validator: ^2.0.0+1
   pin_code_fields: ^8.0.1
   share_plus: ^12.0.1

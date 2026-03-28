@@ -240,7 +240,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           decoration: BoxDecoration(
                             image: DecorationImage(
                               image: NetworkImage(
-                                'https://res.beatnow.app/beatnow/${post['user_id']}/posts/${post['_id']}/caratula.jpg',
+                                'https://res.beatnow.app/beatnow/${post['user_id']}/posts/${post['_id']}/caratula.${post['cover_format'] ?? 'jpg'}',
                               ),
                               fit: BoxFit.cover,
                             ),
