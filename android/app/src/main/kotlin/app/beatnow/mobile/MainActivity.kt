@@ -1,4 +1,4 @@
-package com.example.login_flutter
+package app.beatnow.mobile
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -65,7 +65,7 @@ class DefaultFirebaseOptions {
     projectId: 'auth-2f686',
     storageBucket: 'auth-2f686.appspot.com',
     iosClientId: '749315745117-hu5euib4rssck8441e16t3a6sl0ii7m2.apps.googleusercontent.com',
-    iosBundleId: 'com.example.flutterTest1',
+    iosBundleId: 'app.beatnow.mobile',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -75,7 +75,7 @@ class DefaultFirebaseOptions {
     projectId: 'auth-2f686',
     storageBucket: 'auth-2f686.appspot.com',
     iosClientId: '749315745117-hu5euib4rssck8441e16t3a6sl0ii7m2.apps.googleusercontent.com',
-    iosBundleId: 'com.example.flutterTest1',
+    iosBundleId: 'app.beatnow.mobile',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

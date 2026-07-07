@@ -1,23 +1,34 @@
+import 'package:BeatNow/Models/Posts.dart';
 import 'package:BeatNow/Screens/ProfileScreen/profileother_screen.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:BeatNow/Controllers/auth_controller.dart';
 import 'package:BeatNow/services/beatnow_service.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
   @override
-  _SearchScreenState createState() => _SearchScreenState();
+  State<SearchScreen> createState() => _SearchScreenState();
 }
 
 class _SearchScreenState extends State<SearchScreen> {
   List<String> _searchHistory = [];
   final AuthController _authController = Get.find<AuthController>();
   final BeatNowService _beatNowService = BeatNowService();
+  final TextEditingController _searchController = TextEditingController();
   bool _searchingUsers = false;
+  bool _isLoading = false;
   List<Map<String, dynamic>> _userSearchResults = [];
+  List<Posts> _beatSearchResults = [];
+  Map<String, String> _activeFilters = {};
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -65,9 +76,8 @@ class _SearchScreenState extends State<SearchScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TextField(
-              onSubmitted: (value) {
-                _addToSearchHistory(value);
-              },
+              controller: _searchController,
+              onSubmitted: _runSearch,
               decoration: const InputDecoration(
                 hintText: 'Search...',
                 prefixIcon: Icon(Icons.search),
@@ -125,34 +135,78 @@ class _SearchScreenState extends State<SearchScreen> {
               ],
             ),
             const SizedBox(height: 16.0),
-            if (_searchingUsers) ...[
-              const Text(
-                'User Search Results',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16.0,
-                ),
+            if (!_searchingUsers && _activeFilters.isNotEmpty)
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _activeFilters.entries
+                    .where((entry) => entry.value.isNotEmpty)
+                    .map(
+                      (entry) => Chip(
+                        label: Text('${entry.key}: ${entry.value}'),
+                        onDeleted: () {
+                          setState(() {
+                            _activeFilters.remove(entry.key);
+                          });
+                          if (_searchController.text.trim().isNotEmpty) {
+                            _runSearch(_searchController.text.trim());
+                          }
+                        },
+                      ),
+                    )
+                    .toList(),
               ),
-              const SizedBox(height: 8.0),
-              Expanded(
-                child: _buildUserSearchReadults(),
-              ),
-              const SizedBox(height: 16.0),
-              const Text(
-                'Search History',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16.0,
-                ),
-              ),
-              const SizedBox(height: 8.0),
-              Expanded(
-                child: _buildSearchHistory(),
-              ),
-            ],
+            const SizedBox(height: 8.0),
+            Expanded(child: _buildSearchContent()),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSearchContent() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_searchingUsers) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'User Search Results',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),
+          ),
+          const SizedBox(height: 8.0),
+          Expanded(child: _buildUserSearchReadults()),
+          const SizedBox(height: 16.0),
+          const Text(
+            'Search History',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),
+          ),
+          const SizedBox(height: 8.0),
+          Expanded(child: _buildSearchHistory()),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Beat Results',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),
+        ),
+        const SizedBox(height: 8.0),
+        Expanded(child: _buildBeatSearchResults()),
+        const SizedBox(height: 16.0),
+        const Text(
+          'Search History',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),
+        ),
+        const SizedBox(height: 8.0),
+        Expanded(child: _buildSearchHistory()),
+      ],
     );
   }
 
@@ -168,6 +222,10 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget _buildHistoryItem(String term) {
     return ListTile(
       title: Text(term),
+      onTap: () {
+        _searchController.text = term;
+        _runSearch(term);
+      },
       trailing: IconButton(
         icon: const Icon(Icons.clear),
         onPressed: () {
@@ -184,16 +242,27 @@ class _SearchScreenState extends State<SearchScreen> {
     });
   }
 
-  void _addToSearchHistory(String term) {
+  Future<void> _runSearch(String rawTerm) async {
+    final term = rawTerm.trim();
+    if (term.isEmpty) {
+      return;
+    }
+
     setState(() {
+      _isLoading = true;
       if (!_searchHistory.contains(term)) {
         _searchHistory.insert(0, term);
-        _saveSearchHistory();
+      } else {
+        _searchHistory.remove(term);
+        _searchHistory.insert(0, term);
       }
     });
+    await _saveSearchHistory();
 
-    if (_searchingUsers) {
-      _searchUsers(term).then((results) {
+    try {
+      if (_searchingUsers) {
+        final results = await _searchUsers(term);
+        if (!mounted) return;
         setState(() {
           _userSearchResults = results
               .map((user) => {
@@ -204,11 +273,26 @@ class _SearchScreenState extends State<SearchScreen> {
                   })
               .toList();
         });
-      }).catchError((error) {
+      } else {
+        final results = await _searchFilter(term);
+        if (!mounted) return;
         setState(() {
-          _userSearchResults = [];
+          _beatSearchResults = results
+              .whereType<Map<String, dynamic>>()
+              .map(Posts.fromApi)
+              .toList();
         });
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _userSearchResults = [];
+        _beatSearchResults = [];
       });
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -228,7 +312,7 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
             radius: 20,
           ),
-          title: Text('@' + user['username']!),
+          title: Text('@${user['username']}'),
           onTap: () {
             if (user['_id'] != null && user['username'] != null) {
               _beatNowService.setOtherUserFromSearchResult(user);
@@ -243,11 +327,77 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  Widget _buildBeatSearchResults() {
+    if (_beatSearchResults.isEmpty) {
+      return const Text('No beats found yet. Try another search or loosen the filters.');
+    }
+
+    return ListView.separated(
+      itemCount: _beatSearchResults.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final post = _beatSearchResults[index];
+        return Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF151515),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white10),
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.all(12),
+            leading: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                post.coverImageUrl,
+                width: 56,
+                height: 56,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 56,
+                  height: 56,
+                  color: Colors.white10,
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.music_note_rounded, color: Colors.white54),
+                ),
+              ),
+            ),
+            title: Text(post.title, style: const TextStyle(color: Colors.white)),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 4),
+                Text(
+                  '@${post.username}',
+                  style: const TextStyle(color: Colors.white70),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  [
+                    if (post.genre.isNotEmpty) post.genre,
+                    if (post.bpm != null) '${post.bpm} BPM',
+                    if (post.tags.isNotEmpty) '#${post.tags.take(2).join(' #')}',
+                  ].join('  •  '),
+                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                ),
+              ],
+            ),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('${post.likes}', style: const TextStyle(color: Colors.white)),
+                const Text('likes', style: TextStyle(color: Colors.white54, fontSize: 12)),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _showFilterPopup(BuildContext context) {
-    String selectedGenre = 'Rock';
-    double selectedPrice = 0.00;
-    int selectedBpm = 120;
-    String selectedInstrument = 'Guitar';
+    String selectedGenre = _activeFilters['genre'] ?? 'Trap';
+    int selectedBpm = int.tryParse(_activeFilters['bpm'] ?? '') ?? 120;
+    String selectedInstrument = _activeFilters['instruments'] ?? 'Guitar';
 
     List<String> instruments = [
       'Guitar',
@@ -300,19 +450,6 @@ class _SearchScreenState extends State<SearchScreen> {
                           child: Text(value),
                         );
                       }).toList(),
-                    ),
-                    const SizedBox(height: 16.0),
-                    Text('Price: \$${selectedPrice.toStringAsFixed(2)}'),
-                    Slider(
-                      value: selectedPrice,
-                      min: 0,
-                      max: 150,
-                      divisions: 30,
-                      onChanged: (double value) {
-                        setState(() {
-                          selectedPrice = value;
-                        });
-                      },
                     ),
                     const SizedBox(height: 16.0),
                     Row(
@@ -375,7 +512,19 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () {
+                    final nextFilters = <String, String>{
+                      'genre': selectedGenre,
+                      'bpm': '$selectedBpm',
+                      'instruments': selectedInstrument,
+                    };
                     Navigator.pop(context);
+                    setState(() {
+                      _activeFilters = nextFilters;
+                    });
+                    final term = _searchController.text.trim();
+                    if (term.isNotEmpty) {
+                      _runSearch(term);
+                    }
                   },
                   style: ButtonStyle(
                       backgroundColor: WidgetStateProperty.all<Color>(
@@ -399,6 +548,6 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<List<dynamic>> _searchFilter(String query) {
-    return _beatNowService.searchPosts(query);
+    return _beatNowService.searchPosts(query, filters: _activeFilters);
   }
 }
