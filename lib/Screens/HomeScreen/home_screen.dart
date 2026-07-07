@@ -34,6 +34,9 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
   bool _showPlayHint = false;
   String? _currentAudioUrl;
 
+  Posts? get _activePost =>
+      _posts.isEmpty || _currentIndex >= _posts.length ? null : _posts[_currentIndex];
+
   @override
   void initState() {
     super.initState();
@@ -357,6 +360,12 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
                   ),
                 ),
                 Positioned(
+                  left: 16,
+                  right: 92,
+                  bottom: 38,
+                  child: _buildNowPlayingBar(post),
+                ),
+                Positioned(
                   left: 0,
                   right: 0,
                   bottom: 88,
@@ -474,6 +483,50 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
               ],
             ),
             const SizedBox(height: 14),
+            if (_activePost != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(26),
+                  color: Colors.black.withValues(alpha: 0.28),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _activePost!.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '@${_activePost!.username}',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.64),
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    _buildChromeMetric(Icons.favorite_rounded, '${_activePost!.likes}'),
+                    const SizedBox(width: 10),
+                    _buildChromeMetric(Icons.bookmark_rounded, '${_activePost!.saves}'),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 14),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -484,6 +537,26 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildChromeMetric(IconData icon, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: Colors.white.withValues(alpha: 0.06),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 15, color: Colors.white70),
+          const SizedBox(width: 6),
+          Text(
+            value,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+          ),
+        ],
       ),
     );
   }
@@ -609,6 +682,51 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
               ],
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNowPlayingBar(Posts post) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: Colors.black.withValues(alpha: 0.46),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(colors: [Color(0xFFFF4D9D), Color(0xFF8731E4)]),
+            ),
+            child: Icon(
+              _isPlaying && _currentAudioUrl == post.audioUrl
+                  ? Icons.pause_rounded
+                  : Icons.play_arrow_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _isPlaying && _currentAudioUrl == post.audioUrl
+                  ? 'Now playing ${post.title}'
+                  : 'Tap to preview ${post.title}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
         ],
       ),
     );

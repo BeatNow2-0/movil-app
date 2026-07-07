@@ -123,18 +123,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildStat(String label, String value) {
     return Expanded(
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white70),
-          ),
-        ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          color: Colors.white.withValues(alpha: 0.04),
+        ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: const TextStyle(color: Colors.white70),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -143,76 +150,109 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF050505),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF050505),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            _authController.changeTab(AuthTabs.home);
-            Get.back();
-          },
-        ),
-        title: Text(
-          '@${_user.username}',
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-        ),
-        centerTitle: true,
-      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadProfile,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
+                padding: const EdgeInsets.fromLTRB(18, 0, 18, 30),
                 children: [
-                  GestureDetector(
-                    onTap: _showPhotoOptions,
-                    child: Center(
-                      child: CircleAvatar(
-                        radius: 56,
-                        backgroundImage: NetworkImage(
-                          '${_user.profileImageUrl}?v=${DateTime.now().millisecondsSinceEpoch}',
-                        ),
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 20),
+                    padding: const EdgeInsets.fromLTRB(18, 20, 18, 24),
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(34)),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          const Color(0xFF171221),
+                          const Color(0xFF0A0A0F),
+                          const Color(0xFF3C0F4B).withValues(alpha: 0.7),
+                        ],
+                      ),
+                    ),
+                    child: SafeArea(
+                      bottom: false,
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                                onPressed: () {
+                                  _authController.changeTab(AuthTabs.home);
+                                  Get.back();
+                                },
+                              ),
+                              Expanded(
+                                child: Text(
+                                  '@${_user.username}',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.tune_rounded, color: Colors.white),
+                                onPressed: () => _authController.changeTab(AuthTabs.accountSettings),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          GestureDetector(
+                            onTap: _showPhotoOptions,
+                            child: Center(
+                              child: CircleAvatar(
+                                radius: 58,
+                                backgroundImage: NetworkImage(
+                                  '${_user.profileImageUrl}?v=${DateTime.now().millisecondsSinceEpoch}',
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _user.name.isEmpty ? _user.username : _user.name,
+                            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            '@${_user.username}',
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                          const SizedBox(height: 18),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                            ),
+                            child: Row(
+                              children: [
+                                _buildStat('Posts', '${_posts.length}'),
+                                const SizedBox(width: 8),
+                                _buildStat('Following', '${_profile?['following'] ?? 0}'),
+                                const SizedBox(width: 8),
+                                _buildStat('Followers', '${_profile?['followers'] ?? 0}'),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Text(
-                      _user.name.isEmpty ? _user.username : _user.name,
-                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Center(
-                    child: Text(
-                      '@${_user.username}',
-                      style: const TextStyle(color: Colors.white70),
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.white.withOpacity(0.08)),
-                    ),
-                    child: Row(
-                      children: [
-                        _buildStat('Posts', '${_posts.length}'),
-                        _buildStat('Following', '${_profile?['following'] ?? 0}'),
-                        _buildStat('Followers', '${_profile?['followers'] ?? 0}'),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 18),
                   Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton(
+                        child: OutlinedButton.icon(
                           onPressed: () => _authController.changeTab(AuthTabs.accountSettings),
-                          child: const Text('Account Settings'),
+                          icon: const Icon(Icons.settings_outlined),
+                          label: const Text('Account Settings'),
                         ),
                       ),
                     ],
