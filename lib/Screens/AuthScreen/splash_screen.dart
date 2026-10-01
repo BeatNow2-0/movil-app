@@ -1,6 +1,7 @@
 import 'package:BeatNow/Controllers/auth_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:BeatNow/theme/beatnow_theme.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key, this.sendPasswordReset = false});
@@ -27,10 +28,10 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: Color(0xFF121212),
+      backgroundColor: BeatNowTokens.background,
       body: Center(
         child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.deepPurple),
+          valueColor: AlwaysStoppedAnimation<Color>(BeatNowTokens.accentSoft),
         ),
       ),
     );

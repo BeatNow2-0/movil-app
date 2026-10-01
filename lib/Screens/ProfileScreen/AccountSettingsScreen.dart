@@ -1,6 +1,7 @@
 import 'package:BeatNow/Controllers/auth_controller.dart';
 import 'package:BeatNow/services/api_client.dart';
 import 'package:BeatNow/services/beatnow_service.dart';
+import 'package:BeatNow/theme/beatnow_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -23,7 +24,8 @@ class AccountSettingsScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Log Out', style: TextStyle(color: Colors.red)),
+            child: const Text('Log Out',
+                style: TextStyle(color: BeatNowTokens.danger)),
           ),
         ],
       ),
@@ -52,7 +54,7 @@ class AccountSettingsScreen extends StatelessWidget {
             onPressed: () => Navigator.pop(context, true),
             child: const Text(
               'Delete Account',
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(color: BeatNowTokens.danger),
             ),
           ),
         ],
@@ -68,7 +70,7 @@ class AccountSettingsScreen extends StatelessWidget {
       await _authController.clearSession();
       _authController.changeTab(AuthTabs.login);
     } on ApiException catch (error) {
-      Get.snackbar('Error', error.message);
+      Get.snackbar('Error', error.userMessage);
     }
   }
 
@@ -87,7 +89,7 @@ class AccountSettingsScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF121212), Color(0xFF0D0D0D)],
+            colors: [BeatNowTokens.surface0, BeatNowTokens.background],
             stops: [0.5, 1.0],
           ),
         ),
@@ -97,7 +99,8 @@ class AccountSettingsScreen extends StatelessWidget {
             Expanded(
               child: ListView(
                 children: [
-                  _buildListTile('Log Out', Icons.exit_to_app, () => _confirmLogout(context)),
+                  _buildListTile('Log Out', Icons.exit_to_app,
+                      () => _confirmLogout(context)),
                   _buildListTile(
                     'Delete Account',
                     Icons.delete,
@@ -106,7 +109,7 @@ class AccountSettingsScreen extends StatelessWidget {
                 ],
               ),
             ),
-            Container(height: 1, color: Colors.grey),
+            Container(height: 1, color: BeatNowTokens.border),
             const Padding(
               padding: EdgeInsets.all(8),
               child: Text(
@@ -127,9 +130,11 @@ class AccountSettingsScreen extends StatelessWidget {
     return ListTile(
       title: Text(
         title,
-        style: TextStyle(color: danger ? Colors.red : Colors.white),
+        style: TextStyle(
+            color: danger ? BeatNowTokens.danger : BeatNowTokens.text),
       ),
-      leading: Icon(icon, color: danger ? Colors.red : Colors.white),
+      leading:
+          Icon(icon, color: danger ? BeatNowTokens.danger : BeatNowTokens.text),
       onTap: onTap,
     );
   }

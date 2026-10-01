@@ -13,10 +13,10 @@ class AuthTabs {
   static const int accountSettings = 5;
   static const int search = 6;
   static const int saved = 7;
-  static const int otherProfile = 8;
   static const int login = 9;
   static const int codeConfirmation = 10;
   static const int sendingResetEmail = 11;
+  static const int lyrics = 12;
 }
 
 class AuthController extends GetxController {
@@ -46,8 +46,14 @@ class AuthController extends GetxController {
 
     final storedToken = await _authService.readAccessToken();
     if (storedToken == null || storedToken.isEmpty) {
-      await clearSession();
-      changeTab(AuthTabs.login);
+      final verificationToken = await _authService.readVerificationToken();
+      if (verificationToken != null && verificationToken.isNotEmpty) {
+        UserSingleton().token = verificationToken;
+        changeTab(AuthTabs.codeConfirmation);
+      } else {
+        await clearSession();
+        changeTab(AuthTabs.login);
+      }
       isLoading.value = false;
       return;
     }
@@ -81,6 +87,9 @@ class AuthController extends GetxController {
             : AuthTabs.home,
       );
       return true;
+    } on AccountVerificationRequiredException {
+      changeTab(AuthTabs.codeConfirmation);
+      return false;
     } on ApiException {
       await clearSession();
       changeTab(AuthTabs.login);
@@ -90,7 +99,6 @@ class AuthController extends GetxController {
     }
   }
 
-
   Future<void> sendPasswordMail(String emailAddress) async {
     isLoading.value = true;
 
@@ -99,7 +107,7 @@ class AuthController extends GetxController {
       Get.snackbar('Success', 'Email sent successfully');
       changeTab(AuthTabs.login);
     } on ApiException catch (error) {
-      Get.snackbar('Error', error.message);
+      Get.snackbar('Error', error.userMessage);
       changeTab(AuthTabs.forgotPassword);
     } finally {
       isLoading.value = false;

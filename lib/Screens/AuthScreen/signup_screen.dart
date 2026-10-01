@@ -3,8 +3,10 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:BeatNow/services/api_client.dart';
+import 'package:BeatNow/services/auth_service.dart';
 import 'package:BeatNow/services/beatnow_service.dart';
 import 'package:regexed_validator/regexed_validator.dart';
+import 'package:BeatNow/theme/beatnow_theme.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -24,6 +26,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   late final TapGestureRecognizer _signInRecognizer;
 
   final BeatNowService _beatNowService = BeatNowService();
+  final AuthService _authService = AuthService();
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -50,44 +53,46 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF111111),
+      backgroundColor: BeatNowTokens.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              const SizedBox(height: 60),
+              const SizedBox(height: BeatNowTokens.space5),
               const Text(
-                'Create New Account',
+                'Create your account',
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 26,
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 8),
               const Text(
-                'Please fill in the form to continue',
-                style: TextStyle(color: Color(0xFF494949)),
+                'Join BeatNow to find your sound.',
+                style: TextStyle(color: BeatNowTokens.textMuted),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: BeatNowTokens.space5),
               _input(_fullName, 'Full Name'),
-              _input(_email, 'Email Address', keyboardType: TextInputType.emailAddress),
+              _input(_email, 'Email Address',
+                  keyboardType: TextInputType.emailAddress),
               _input(_username, 'Username'),
               _passwordInput(_password, 'Password', true),
               _passwordInput(_confirmPassword, 'Confirm Password', false),
-              const SizedBox(height: 30),
-              ElevatedButton(
+              const SizedBox(height: BeatNowTokens.space2),
+              FilledButton(
                 onPressed: _isLoading ? null : _register,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3C0F4B),
-                  minimumSize: const Size(double.infinity, 56),
-                ),
                 child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2),
+                      )
                     : const Text('Sign Up'),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: BeatNowTokens.space4),
               RichText(
                 text: TextSpan(
                   text: 'Already have an account? ',
@@ -96,7 +101,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     TextSpan(
                       text: 'Sign In',
                       style: const TextStyle(
-                        color: Color(0xFF4E0566),
+                        color: BeatNowTokens.accentSoft,
                         decoration: TextDecoration.underline,
                       ),
                       recognizer: _signInRecognizer,
@@ -121,6 +126,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       child: TextField(
         controller: c,
         keyboardType: keyboardType,
+        textInputAction: TextInputAction.next,
+        autofillHints: keyboardType == TextInputType.emailAddress
+            ? const [AutofillHints.email]
+            : null,
         style: const TextStyle(color: Colors.white),
         decoration: _decoration(hint),
       ),
@@ -133,10 +142,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
       child: TextField(
         controller: c,
         obscureText: main ? _obscurePassword : _obscureConfirmPassword,
+        textInputAction: main ? TextInputAction.next : TextInputAction.done,
+        autofillHints: main
+            ? const [AutofillHints.newPassword]
+            : const [AutofillHints.newPassword],
+        onSubmitted: main ? null : (_) => _register(),
         style: const TextStyle(color: Colors.white),
         decoration: _decoration(
           hint,
           suffix: IconButton(
+            tooltip: (main ? _obscurePassword : _obscureConfirmPassword)
+                ? 'Show password'
+                : 'Hide password',
             icon: Icon(
               (main ? _obscurePassword : _obscureConfirmPassword)
                   ? Icons.visibility
@@ -155,17 +172,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   InputDecoration _decoration(String hint, {Widget? suffix}) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: Colors.white70),
-      filled: true,
-      fillColor: const Color(0xFF494949),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      suffixIcon: suffix,
-    );
+    return InputDecoration(hintText: hint, suffixIcon: suffix);
   }
 
   Future<void> _register() async {
@@ -193,28 +200,30 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await _beatNowService.register(
+      final response = await _beatNowService.register(
         fullName: fullName,
         email: email,
         username: username,
         password: password,
       );
-
-      final loggedIn = await _authController.loginWithCredentials(username, password);
+      final verificationToken = response['verification_token']?.toString();
 
       if (!mounted) {
         return;
       }
 
-      if (loggedIn) {
-        _showMessage('Account created. Check your email for the verification code.');
+      if (verificationToken != null && verificationToken.isNotEmpty) {
+        await _authService.persistVerificationToken(verificationToken);
+        _showMessage(
+            'Account created. Check your email for the verification code.');
+        _authController.changeTab(AuthTabs.codeConfirmation);
       } else {
         _showMessage('Account created. Please sign in.');
         _authController.changeTab(AuthTabs.login);
       }
     } on ApiException catch (error) {
       if (mounted) {
-        _showMessage(error.message);
+        _showMessage(error.userMessage);
       }
     } catch (_) {
       if (mounted) {
@@ -255,7 +264,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void _showMessage(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: const Color(0xFF3C0F4B),
         content: Text(msg),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:BeatNow/Controllers/auth_controller.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:BeatNow/theme/beatnow_theme.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -36,92 +37,149 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final ButtonStyle buttonStyle = ElevatedButton.styleFrom(
-      backgroundColor: const Color(0xFF3C0F4B),
-      minimumSize: const Size(double.infinity, 56),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-    );
-
     return Scaffold(
-      backgroundColor: const Color(0xFF111111),
+      backgroundColor: BeatNowTokens.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(
+            BeatNowTokens.space4,
+            BeatNowTokens.space4,
+            BeatNowTokens.space4,
+            BeatNowTokens.space6,
+          ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 60),
-              const Text(
-                'Welcome Back!',
-                style: TextStyle(
-                  fontSize: 24,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Please sign into your account',
-                style: TextStyle(color: Color(0xFF494949)),
-              ),
-              const SizedBox(height: 80),
-              TextField(
-                controller: _usernameController,
-                style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration('Username'),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _passwordController,
-                obscureText: _obscurePassword,
-                style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration(
-                  'Password',
-                  suffix: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                      color: Colors.white,
+              Row(
+                children: [
+                  ClipRRect(
+                    borderRadius:
+                        BorderRadius.circular(BeatNowTokens.radiusMedium),
+                    child: Image.asset(
+                      'assets/icon/icon.png',
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.cover,
                     ),
-                    onPressed: () =>
-                        setState(() => _obscurePassword = !_obscurePassword),
                   ),
-                ),
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _login(),
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () =>
-                      _authController.changeTab(AuthTabs.forgotPassword),
-                  child: const Text(
-                    'Forgot Password?',
-                    style: TextStyle(color: Colors.white),
+                  const SizedBox(width: BeatNowTokens.space3),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('BEATNOW',
+                          style: TextStyle(
+                              color: BeatNowTokens.textMuted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700)),
+                      SizedBox(height: 2),
+                      Text('Discover your next sound',
+                          style: TextStyle(
+                              color: BeatNowTokens.text,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600)),
+                    ],
                   ),
+                ],
+              ),
+              const SizedBox(height: BeatNowTokens.space5),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: BeatNowTokens.surface1,
+                  borderRadius:
+                      BorderRadius.circular(BeatNowTokens.radiusMedium),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Welcome back',
+                      style: TextStyle(
+                          fontSize: 26,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Sign in to find beats, save inspiration and write.',
+                      style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.64)),
+                    ),
+                    const SizedBox(height: 24),
+                    TextField(
+                      controller: _usernameController,
+                      textInputAction: TextInputAction.next,
+                      autofillHints: const [AutofillHints.username],
+                      style: const TextStyle(color: Colors.white),
+                      decoration: _inputDecoration('Username'),
+                    ),
+                    const SizedBox(height: BeatNowTokens.space4),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      autofillHints: const [AutofillHints.password],
+                      style: const TextStyle(color: Colors.white),
+                      decoration: _inputDecoration(
+                        'Password',
+                        suffix: IconButton(
+                          tooltip: _obscurePassword
+                              ? 'Show password'
+                              : 'Hide password',
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: Colors.white70,
+                          ),
+                          onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword),
+                        ),
+                      ),
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _login(),
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () =>
+                            _authController.changeTab(AuthTabs.forgotPassword),
+                        child: const Text(
+                          'Forgot Password?',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    FilledButton(
+                      onPressed: _isLoading ? null : _login,
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2.2),
+                            )
+                          : const Text(
+                              'Continue',
+                              style: TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 60),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _login,
-                style: buttonStyle,
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Sign In'),
-              ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 24),
               RichText(
                 text: TextSpan(
                   text: "Don't have an account? ",
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
                   children: [
                     TextSpan(
                       text: 'Sign Up',
                       style: const TextStyle(
-                        color: Color(0xFF4E0566),
-                        decoration: TextDecoration.underline,
+                        color: BeatNowTokens.accentSoft,
+                        fontWeight: FontWeight.w700,
                       ),
                       recognizer: _signUpRecognizer,
                     ),
@@ -136,17 +194,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   InputDecoration _inputDecoration(String hint, {Widget? suffix}) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: Colors.white70),
-      filled: true,
-      fillColor: const Color(0xFF494949),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      suffixIcon: suffix,
-    );
+    return InputDecoration(hintText: hint, suffixIcon: suffix);
   }
 
   Future<void> _login() async {
@@ -161,13 +209,14 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() => _isLoading = true);
-    final success = await _authController.loginWithCredentials(username, password);
+    final success =
+        await _authController.loginWithCredentials(username, password);
     if (!mounted) {
       return;
     }
 
     setState(() => _isLoading = false);
-    if (!success) {
+    if (!success && _authController.selectedIndex.value == AuthTabs.login) {
       _showMessage('Incorrect login');
     }
   }
@@ -175,7 +224,6 @@ class _LoginScreenState extends State<LoginScreen> {
   void _showMessage(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: const Color(0xFF3C0F4B),
         content: Text(msg),
       ),
     );

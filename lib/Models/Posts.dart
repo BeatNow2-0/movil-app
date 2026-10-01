@@ -1,3 +1,5 @@
+import 'package:BeatNow/Models/media_defaults.dart';
+
 class Posts {
   final String id;
   final String title;
@@ -44,27 +46,21 @@ class Posts {
   });
 
   factory Posts.fromApi(Map<String, dynamic> json) {
-    final userId = json['user_id']?.toString() ?? '';
-    final postId = json['_id']?.toString() ?? '';
-
     return Posts(
-      id: postId,
+      id: MediaDefaults.firstString(json, ['_id', 'id', 'post_id', 'beat_id']),
       title: json['title']?.toString() ?? '',
       username: json['creator_username']?.toString() ?? json['username']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
-      likes: _asInt(json['likes']),
-      saves: _asInt(json['saves']),
+      likes: _asCount(json['likes']),
+      saves: _asCount(json['saves']),
       views: _asInt(json['views']),
       liked: json['isLiked'] == true || json['liked'] == true,
       saved: json['isSaved'] == true || json['saved'] == true,
-      userId: userId,
+      userId: MediaDefaults.firstString(json, ['user_id', 'creator_id']),
       audioFormat: json['audio_format']?.toString() ?? 'mp3',
-      userPhotoProfile: json['profile_image_url']?.toString() ??
-          'https://res.beatnow.app/beatnow/$userId/photo_profile/photo_profile.png',
-      coverImage: json['cover_image_url']?.toString() ??
-          'https://res.beatnow.app/beatnow/$userId/posts/$postId/caratula.${json['cover_format'] ?? 'jpg'}',
-      audioSourceUrl: json['audio_url']?.toString() ??
-          'https://res.beatnow.app/beatnow/$userId/posts/$postId/audio.${json['audio_format'] ?? 'mp3'}',
+      userPhotoProfile: MediaDefaults.profileUrl(json),
+      coverImage: MediaDefaults.coverUrl(json),
+      audioSourceUrl: MediaDefaults.apiUrl(json, 'audio_url'),
       genre: json['genre']?.toString() ?? '',
       tags: _asStringList(json['tags']),
       moods: _asStringList(json['moods']),
@@ -130,6 +126,8 @@ class Posts {
     if (value is double) return value.round();
     return int.tryParse(value?.toString() ?? '') ?? 0;
   }
+
+  static int _asCount(dynamic value) => _asInt(value).clamp(0, 1 << 30).toInt();
 
   static List<String> _asStringList(dynamic value) {
     if (value is List) {

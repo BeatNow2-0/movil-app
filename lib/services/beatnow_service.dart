@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:BeatNow/Models/OtherUserSingleton.dart';
+import 'package:BeatNow/Models/media_defaults.dart';
 import 'package:BeatNow/Models/Posts.dart';
 import 'package:BeatNow/Models/SavedPost.dart';
 import 'package:BeatNow/Models/UserSingleton.dart';
@@ -6,10 +9,39 @@ import 'package:BeatNow/services/api_client.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
+class BeatInteractionChange {
+  const BeatInteractionChange({
+    required this.postId,
+    this.liked,
+    this.saved,
+  });
+
+  final String postId;
+  final bool? liked;
+  final bool? saved;
+}
+
 class BeatNowService {
-  BeatNowService({ApiClient? apiClient}) : _apiClient = apiClient ?? ApiClient();
+  BeatNowService({ApiClient? apiClient})
+      : _apiClient = apiClient ?? ApiClient();
 
   final ApiClient _apiClient;
+  static final StreamController<BeatInteractionChange> _interactionChanges =
+      StreamController<BeatInteractionChange>.broadcast();
+
+  Stream<BeatInteractionChange> get interactionChanges =>
+      _interactionChanges.stream;
+
+  void publishInteractionChange(
+    String postId, {
+    bool? liked,
+    bool? saved,
+  }) {
+    if (postId.isEmpty) return;
+    _interactionChanges.add(
+      BeatInteractionChange(postId: postId, liked: liked, saved: saved),
+    );
+  }
 
   Future<Map<String, dynamic>> register({
     required String fullName,
@@ -32,41 +64,52 @@ class BeatNowService {
   Future<Map<String, dynamic>> getCurrentUser() async {
     final json = await _apiClient.get('/users/users/me');
     UserSingleton()
-      ..id = json['id']?.toString() ?? ''
+      ..id = (json['_id'] ?? json['id'])?.toString() ?? ''
       ..name = json['full_name']?.toString() ?? ''
       ..username = json['username']?.toString() ?? ''
       ..email = json['email']?.toString() ?? ''
-      ..profileImageUrl = json['profile_image_url']?.toString() ??
-          'https://res.beatnow.app/beatnow/${json['id']?.toString() ?? ''}/photo_profile/photo_profile.png'
+      ..profileImageUrl = MediaDefaults.profileUrl(json)
       ..isActive = json['is_active'] == true;
     return json;
   }
 
-  Future<Map<String, dynamic>> getUserProfile(String userId) => _apiClient.get('/users/profile/$userId');
+  Future<Map<String, dynamic>> getUserProfile(String userId) =>
+      _apiClient.get('/users/profile/$userId');
 
-  Future<List<dynamic>> getUserPostsRaw(String username) => _apiClient.getList('/users/posts/$username');
+  Future<List<dynamic>> getUserPostsRaw(String username) =>
+      _apiClient.getList('/users/posts/$username');
 
   Future<List<Posts>> getUserPosts(String username) async {
     final response = await getUserPostsRaw(username);
-    return response.whereType<Map<String, dynamic>>().map(Posts.fromApi).toList();
+    return response
+        .whereType<Map<String, dynamic>>()
+        .map(Posts.fromApi)
+        .toList();
   }
 
-  Future<List<Posts>> getRandomFeedPosts({int count = 6, Set<String>? excludeIds}) async {
+  Future<List<Posts>> getRandomFeedPosts(
+      {int count = 6, Set<String>? excludeIds}) async {
+    ApiException? lastError;
     try {
       final response = await _apiClient.getList(
         '/posts/feed',
         queryParameters: {
           'limit': count.toString(),
-          if (excludeIds != null && excludeIds.isNotEmpty) 'exclude_ids': excludeIds.join(','),
+          if (excludeIds != null && excludeIds.isNotEmpty)
+            'exclude_ids': excludeIds.join(','),
         },
       );
 
-      final posts = response.whereType<Map<String, dynamic>>().map(Posts.fromApi).toList();
+      final posts = response
+          .whereType<Map<String, dynamic>>()
+          .map(Posts.fromApi)
+          .toList();
       if (posts.isNotEmpty) {
         return posts;
       }
-    } on ApiException {
+    } on ApiException catch (error) {
       // Fallback to the legacy random endpoint so older deployments still work.
+      lastError = error;
     }
 
     final posts = <Posts>[];
@@ -81,11 +124,15 @@ class BeatNowService {
         if (seenIds.add(post.id)) {
           posts.add(post);
         }
-      } on ApiException {
+      } on ApiException catch (error) {
+        lastError = error;
         break;
       }
     }
 
+    if (posts.isEmpty && lastError != null) {
+      throw lastError;
+    }
     return posts;
   }
 
@@ -103,18 +150,25 @@ class BeatNowService {
     );
   }
 
-  Future<void> sendConfirmationEmail() async {
-    await _apiClient.post(
+  Future<Map<String, dynamic>> sendConfirmationEmail() async {
+    final verificationToken = await _apiClient.readVerificationToken();
+    return _apiClient.post(
       '/mail/send-confirmation',
       body: const {},
+      bearerToken: verificationToken,
+      allowRefresh: false,
     );
   }
 
   Future<void> confirmEmailCode(String code) async {
+    final verificationToken = await _apiClient.readVerificationToken();
     await _apiClient.post(
       '/mail/confirmation',
       body: {'code': code},
+      bearerToken: verificationToken,
+      allowRefresh: false,
     );
+    await _apiClient.clearVerificationToken();
   }
 
   Future<Posts> getRandomPost() async {
@@ -134,27 +188,52 @@ class BeatNowService {
     return <SavedPost>[];
   }
 
-  Future<void> likePost(String postId) => _apiClient.post('/interactions/like/$postId');
-  Future<void> unlikePost(String postId) => _apiClient.delete('/interactions/unlike/$postId');
-  Future<void> savePost(String postId) => _apiClient.post('/interactions/save/$postId');
-  Future<void> unsavePost(String postId) => _apiClient.delete('/interactions/unsave/$postId');
-  Future<void> registerView(String postId) => _apiClient.post('/interactions/view/$postId');
+  Future<Posts> getPostById(String postId) async {
+    final json = await _apiClient.get('/posts/$postId');
+    return Posts.fromApi(json);
+  }
+
+  Future<void> likePost(String postId) =>
+      _apiClient.post('/interactions/like/$postId');
+  Future<void> unlikePost(String postId) =>
+      _apiClient.delete('/interactions/unlike/$postId');
+  Future<void> savePost(String postId) =>
+      _apiClient.post('/interactions/save/$postId');
+  Future<void> unsavePost(String postId) =>
+      _apiClient.delete('/interactions/unsave/$postId');
+  Future<void> registerView(String postId) =>
+      _apiClient.post('/interactions/view/$postId');
 
   Future<List<Map<String, dynamic>>> searchUsers(String query) async {
-    final results = await _apiClient.getList('/search/user/', queryParameters: {'username': query});
+    final results = await _apiClient
+        .getList('/search/user/', queryParameters: {'username': query});
     return results.whereType<Map<String, dynamic>>().toList();
   }
 
-  Future<List<Map<String, dynamic>>> searchPosts(String query, {Map<String, dynamic>? filters}) async {
-    final response = await _apiClient.getList('/search/search_posts', queryParameters: {
-      'search': query,
-      ...?filters,
-    });
+  Future<List<Map<String, dynamic>>> searchPosts(String query,
+      {Map<String, dynamic>? filters, int limit = 20, int skip = 0}) async {
+    final queryParameters = <String, dynamic>{
+      if (query.trim().isNotEmpty) 'search': query.trim(),
+      'limit': limit.clamp(1, 100),
+      'skip': skip.clamp(0, 10000),
+    };
+    for (final key in const ['genre', 'moods', 'instruments']) {
+      final value = filters?[key]?.toString().trim();
+      if (value != null && value.isNotEmpty) queryParameters[key] = value;
+    }
+    final bpmValue = filters?['bpm'];
+    final bpm = bpmValue is int ? bpmValue : int.tryParse('$bpmValue');
+    if (bpm != null) queryParameters['bpm'] = bpm;
+
+    final response = await _apiClient.getList(
+      '/search/search_posts',
+      queryParameters: queryParameters,
+    );
     return response.whereType<Map<String, dynamic>>().toList();
   }
 
   Future<List<Map<String, dynamic>>> getUserLyrics() async {
-    final response = await _apiClient.getList('/lyrics/user');
+    final response = await _apiClient.getList('/users/lyrics');
     return response.whereType<Map<String, dynamic>>().toList();
   }
 
@@ -166,7 +245,7 @@ class BeatNowService {
     return _apiClient.post('/lyrics/', body: {
       'title': title,
       'lyrics': lyrics,
-      if (postId != null && postId.isNotEmpty) 'post_id': postId,
+      'post_id': postId?.isNotEmpty == true ? postId : null,
     });
   }
 
@@ -179,18 +258,23 @@ class BeatNowService {
     return _apiClient.put('/lyrics/$lyricId', body: {
       'title': title,
       'lyrics': lyrics,
-      if (postId != null && postId.isNotEmpty) 'post_id': postId,
+      'post_id': postId?.isNotEmpty == true ? postId : null,
     });
   }
 
-  Future<void> deleteLyric(String lyricId) => _apiClient.delete('/lyrics/$lyricId');
-  Future<Map<String, dynamic>> getLyric(String lyricId) => _apiClient.get('/lyrics/$lyricId');
+  Future<void> deleteLyric(String lyricId) =>
+      _apiClient.delete('/lyrics/$lyricId');
+  Future<Map<String, dynamic>> getLyric(String lyricId) =>
+      _apiClient.get('/lyrics/$lyricId');
 
-  Future<void> followUser(String userId) => _apiClient.post('/follows/follow/$userId');
-  Future<void> unfollowUser(String userId) => _apiClient.delete('/follows/unfollow/$userId');
+  Future<void> followUser(String userId) =>
+      _apiClient.post('/follows/follow/$userId');
+  Future<void> unfollowUser(String userId) =>
+      _apiClient.delete('/follows/unfollow/$userId');
 
   Future<void> changeProfilePhoto(String filePath) async {
-    final uri = Uri.https('api.beatnow.app', '/v1/api/users/change_photo_profile');
+    final uri =
+        Uri.https('api.beatnow.app', '/v1/api/users/change_photo_profile');
     final request = http.MultipartRequest('PUT', uri)
       ..headers['Authorization'] = 'Bearer ${UserSingleton().token}'
       ..files.add(await http.MultipartFile.fromPath(
@@ -202,18 +286,19 @@ class BeatNowService {
     final response = await request.send();
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final body = await response.stream.bytesToString();
-      throw ApiException('Failed to upload profile image', statusCode: response.statusCode, responseBody: body);
+      throw ApiException('Failed to upload profile image',
+          statusCode: response.statusCode, responseBody: body);
     }
   }
 
-  Future<void> deleteProfilePhoto() => _apiClient.delete('/users/delete_photo_profile');
+  Future<void> deleteProfilePhoto() =>
+      _apiClient.delete('/users/delete_photo_profile');
 
   void setOtherUserFromSearchResult(Map<String, dynamic> user) {
     OtherUserSingleton()
       ..id = user['id']?.toString() ?? user['_id']?.toString() ?? ''
       ..username = user['username']?.toString() ?? ''
       ..name = user['full_name']?.toString() ?? ''
-      ..profileImageUrl = user['profile_image_url']?.toString() ??
-          'https://res.beatnow.app/beatnow/${user['id']?.toString() ?? user['_id']?.toString() ?? ''}/photo_profile/photo_profile.png';
+      ..profileImageUrl = MediaDefaults.profileUrl(user);
   }
 }

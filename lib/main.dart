@@ -1,14 +1,15 @@
 import 'package:BeatNow/Screens/AuthScreen/authentication_code_screen.dart';
 import 'package:BeatNow/Screens/AuthScreen/splash_screen.dart';
 import 'package:BeatNow/Screens/HomeScreen/home_screen.dart';
+import 'package:BeatNow/Screens/HomeScreen/LyricScreen.dart';
 import 'package:BeatNow/Screens/HomeScreen/saved_screen.dart';
 import 'package:BeatNow/Screens/ProfileScreen/AccountSettingsScreen.dart';
-import 'package:BeatNow/Screens/ProfileScreen/profileother_screen.dart';
 import 'package:BeatNow/Screens/ProfileScreen/profileuser_screen.dart';
 import 'package:BeatNow/Screens/SearchScreens/search_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'theme/beatnow_theme.dart';
 
 import 'Controllers/auth_controller.dart';
 import 'Screens/AuthScreen/forgot_password_screen.dart';
@@ -30,45 +31,80 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'BeatNow',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        primarySwatch: Colors.deepPurple,
-        textTheme: const TextTheme(
-          bodyMedium: TextStyle(fontFamily: 'Franklin Gothic Demi'),
-        ),
-      ),
-      home: HomeScreen(),
+      theme: BeatNowTheme.dark,
+      home: const HomeScreen(),
     );
   }
 }
 
-class HomeScreen extends StatelessWidget {
-  HomeScreen({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
   final AuthController _authController = Get.put(AuthController());
+  final List<Widget?> _primaryPages = List<Widget?>.filled(5, null);
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      switch (_authController.selectedIndex.value) {
+      final selectedTab = _authController.selectedIndex.value;
+      final selectedIndex = _navigationIndex(selectedTab);
+      if (selectedIndex != null) {
+        _primaryPages[selectedIndex] ??= _primaryPage(selectedIndex);
+        return Scaffold(
+          body: IndexedStack(
+            index: selectedIndex,
+            children: List.generate(
+              _primaryPages.length,
+              (index) => _primaryPages[index] ?? const SizedBox.shrink(),
+            ),
+          ),
+          bottomNavigationBar: BottomNavigationBar(
+            currentIndex: selectedIndex,
+            type: BottomNavigationBarType.fixed,
+            onTap: (index) => _authController.changeTab(_tabForIndex(index)),
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home_outlined),
+                activeIcon: Icon(Icons.home_rounded),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.search_rounded),
+                label: 'Explore',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.bookmark_border_rounded),
+                activeIcon: Icon(Icons.bookmark_rounded),
+                label: 'Saved',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.edit_note_rounded),
+                label: 'Lyrics',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person_outline_rounded),
+                activeIcon: Icon(Icons.person_rounded),
+                label: 'Profile',
+              ),
+            ],
+          ),
+        );
+      }
+
+      switch (selectedTab) {
         case AuthTabs.splash:
           return const SplashScreen();
         case AuthTabs.signUp:
           return const SignUpScreen();
         case AuthTabs.forgotPassword:
           return ForgotPasswordScreen();
-        case AuthTabs.home:
-          return HomeScreenState();
-        case AuthTabs.profile:
-          return const ProfileScreen();
         case AuthTabs.accountSettings:
           return AccountSettingsScreen();
-        case AuthTabs.search:
-          return SearchScreen();
-        case AuthTabs.saved:
-          return const SavedScreen();
-        case AuthTabs.otherProfile:
-          return const ProfileOtherScreen();
         case AuthTabs.login:
           return const LoginScreen();
         case AuthTabs.codeConfirmation:
@@ -79,5 +115,55 @@ class HomeScreen extends StatelessWidget {
           return const LoginScreen();
       }
     });
+  }
+
+  Widget _primaryPage(int index) {
+    switch (index) {
+      case 0:
+        return const HomeScreenState();
+      case 1:
+        return const SearchScreen();
+      case 2:
+        return const SavedScreen();
+      case 3:
+        return const LyricScreen();
+      case 4:
+        return const ProfileScreen();
+      default:
+        return const HomeScreenState();
+    }
+  }
+
+  int? _navigationIndex(int tab) {
+    switch (tab) {
+      case AuthTabs.home:
+        return 0;
+      case AuthTabs.search:
+        return 1;
+      case AuthTabs.saved:
+        return 2;
+      case AuthTabs.lyrics:
+        return 3;
+      case AuthTabs.profile:
+        return 4;
+      default:
+        return null;
+    }
+  }
+
+  int _tabForIndex(int index) {
+    switch (index) {
+      case 1:
+        return AuthTabs.search;
+      case 2:
+        return AuthTabs.saved;
+      case 3:
+        return AuthTabs.lyrics;
+      case 4:
+        return AuthTabs.profile;
+      case 0:
+      default:
+        return AuthTabs.home;
+    }
   }
 }

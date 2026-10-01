@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:BeatNow/Controllers/auth_controller.dart';
 import 'package:BeatNow/services/api_client.dart';
 import 'package:BeatNow/services/beatnow_service.dart';
@@ -5,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
+import 'package:BeatNow/theme/beatnow_theme.dart';
 
 class CodeConfirmationScreen extends StatefulWidget {
   const CodeConfirmationScreen({super.key});
@@ -20,32 +23,29 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
 
   bool _submitting = false;
   bool _resending = false;
+  int _resendSeconds = 60;
+  Timer? _resendTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startResendCooldown(60);
+  }
 
   @override
   void dispose() {
+    _resendTimer?.cancel();
     _codeController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final buttonStyle = ElevatedButton.styleFrom(
-      backgroundColor: const Color(0xFF3C0F4B),
-      minimumSize: const Size(double.infinity, 56),
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-      ),
-      textStyle: const TextStyle(
-        fontFamily: 'Franklin Gothic Demi',
-        fontSize: 16.0,
-      ),
-    );
-
+    final fieldWidth =
+        ((MediaQuery.sizeOf(context).width - 80) / 6).clamp(32.0, 48.0);
     return Scaffold(
-      backgroundColor: const Color(0xFF111111),
+      backgroundColor: BeatNowTokens.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF111111),
         elevation: 0,
         actions: [
           IconButton(
@@ -64,19 +64,32 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
+                Center(
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    margin: const EdgeInsets.only(bottom: BeatNowTokens.space4),
+                    decoration: BoxDecoration(
+                      color: BeatNowTokens.accentMuted,
+                      borderRadius:
+                          BorderRadius.circular(BeatNowTokens.radiusMedium),
+                    ),
+                    child: const Icon(Icons.mark_email_read_outlined,
+                        color: BeatNowTokens.accentSoft, size: 28),
+                  ),
+                ),
                 const Text(
-                  'Enter Confirmation Code',
+                  'Verify your email',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 24.0,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
-                    fontFamily: 'Franklin Gothic Demi',
                   ),
                 ),
                 const SizedBox(height: 12.0),
                 const Text(
-                  'We sent a 6-digit code to your email address.',
+                  'Enter the 6-digit code sent to your email address.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white70),
                 ),
@@ -89,39 +102,45 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
                   autoDisposeControllers: false,
                   pinTheme: PinTheme(
                     shape: PinCodeFieldShape.box,
-                    borderRadius: BorderRadius.circular(12.0),
-                    fieldHeight: 50,
-                    fieldWidth: 40,
-                    activeFillColor: const Color(0xFF494949),
-                    inactiveFillColor: const Color(0xFF494949),
-                    selectedFillColor: const Color(0xFF494949),
-                    activeColor: Colors.white,
-                    inactiveColor: Colors.white70,
-                    selectedColor: Colors.white,
+                    borderRadius:
+                        BorderRadius.circular(BeatNowTokens.radiusSmall),
+                    fieldHeight: 52,
+                    fieldWidth: fieldWidth,
+                    activeFillColor: BeatNowTokens.surface2,
+                    inactiveFillColor: BeatNowTokens.surface2,
+                    selectedFillColor: BeatNowTokens.surface3,
+                    activeColor: BeatNowTokens.accentSoft,
+                    inactiveColor: BeatNowTokens.borderStrong,
+                    selectedColor: BeatNowTokens.accentSoft,
                   ),
-                  backgroundColor: const Color(0xFF111111),
+                  backgroundColor: BeatNowTokens.background,
                   textStyle: const TextStyle(color: Colors.white),
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   onChanged: (_) {},
                 ),
                 const SizedBox(height: 20.0),
-                ElevatedButton(
+                FilledButton(
                   onPressed: _submitting ? null : _submitCode,
-                  style: buttonStyle,
                   child: _submitting
                       ? const SizedBox(
                           width: 18,
                           height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
                         )
                       : const Text('Submit'),
                 ),
                 const SizedBox(height: 12.0),
                 TextButton(
-                  onPressed: _resending ? null : _resendCode,
+                  onPressed:
+                      _resending || _resendSeconds > 0 ? null : _resendCode,
                   child: Text(
-                    _resending ? 'Sending...' : 'Resend code',
+                    _resending
+                        ? 'Sending...'
+                        : _resendSeconds > 0
+                            ? 'Resend code in ${_resendSeconds}s'
+                            : 'Resend code',
                     style: const TextStyle(color: Colors.white),
                   ),
                 ),
@@ -147,7 +166,7 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
       await _authController.checkLogin();
       _showMessage('Email verified successfully.');
     } on ApiException catch (error) {
-      _showMessage(error.message);
+      _showMessage(error.userMessage);
     } finally {
       if (mounted) {
         setState(() => _submitting = false);
@@ -158,10 +177,15 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
   Future<void> _resendCode() async {
     setState(() => _resending = true);
     try {
-      await _beatNowService.sendConfirmationEmail();
+      final response = await _beatNowService.sendConfirmationEmail();
+      final retryAfter = response['retry_after'];
+      _startResendCooldown(retryAfter is int ? retryAfter : 60);
       _showMessage('A new code has been sent.');
     } on ApiException catch (error) {
-      _showMessage(error.message);
+      if (error.statusCode == 429) {
+        _startResendCooldown(error.retryAfter ?? 60);
+      }
+      _showMessage(error.userMessage);
     } finally {
       if (mounted) {
         setState(() => _resending = false);
@@ -176,8 +200,30 @@ class _CodeConfirmationScreenState extends State<CodeConfirmationScreen> {
           message,
           style: const TextStyle(color: Colors.white),
         ),
-        backgroundColor: const Color(0xFF3C0F4B),
+        backgroundColor: BeatNowTokens.surface3,
       ),
     );
+  }
+
+  void _startResendCooldown(int seconds) {
+    _resendTimer?.cancel();
+    if (!mounted) {
+      _resendSeconds = seconds;
+      return;
+    }
+
+    setState(() => _resendSeconds = seconds);
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_resendSeconds <= 1) {
+        timer.cancel();
+        setState(() => _resendSeconds = 0);
+        return;
+      }
+      setState(() => _resendSeconds -= 1);
+    });
   }
 }

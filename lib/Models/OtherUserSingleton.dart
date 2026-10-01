@@ -1,13 +1,13 @@
+import 'package:BeatNow/Models/media_defaults.dart';
+
 class OtherUserSingleton {
   static final OtherUserSingleton _instance = OtherUserSingleton._internal();
   late String _id = '';
   late String _name = '';
   late String _username = '';
   late String _email = '';
-  late String _profileImageUrl =
-      'https://res.beatnow.app/beatnow/$_id/photo_profile/photo_profile.png';
-  late String _defaultProfileImageUrl =
-      'https://res.beatnow.app/beatnow/default/default_photo.png';
+  late String _profileImageUrl = MediaDefaults.profileImage;
+  late String _defaultProfileImageUrl = MediaDefaults.profileImage;
   late String _token = '';
   late int _current = 0;
 

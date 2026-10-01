@@ -1,13 +1,17 @@
+import 'dart:async';
+
 import 'package:BeatNow/Controllers/auth_controller.dart';
 import 'package:BeatNow/Models/OtherUserSingleton.dart';
 import 'package:BeatNow/Models/Posts.dart';
+import 'package:BeatNow/Models/media_defaults.dart';
 import 'package:BeatNow/Models/UserSingleton.dart';
 import 'package:BeatNow/Screens/HomeScreen/LyricEditorPage.dart';
-import 'package:BeatNow/Screens/HomeScreen/LyricScreen.dart';
-import 'package:BeatNow/Screens/HomeScreen/saved_screen.dart';
+import 'package:BeatNow/Screens/ProfileScreen/profileother_screen.dart';
 import 'package:BeatNow/services/api_client.dart';
+import 'package:BeatNow/services/audio_playback_service.dart';
 import 'package:BeatNow/services/beatnow_service.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:BeatNow/theme/beatnow_theme.dart';
+import 'package:BeatNow/widgets/cached_media_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
@@ -19,58 +23,55 @@ class HomeScreenState extends StatefulWidget {
   State<HomeScreenState> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserver {
+class _HomeScreenState extends State<HomeScreenState> {
   final AuthController _authController = Get.find<AuthController>();
   final BeatNowService _beatNowService = BeatNowService();
-  final PageController _pageController = PageController();
   final List<Posts> _posts = <Posts>[];
-  late final AudioPlayer _audioPlayer;
+  final Set<String> _viewedPostIds = <String>{};
+  final PageController _pageController = PageController();
+  final AudioPlaybackService _audioPlayback = AudioPlaybackService.instance;
+  late final StreamSubscription<BeatInteractionChange> _interactionSubscription;
+  late final Worker _tabWorker;
+  final Set<String> _pendingLikeIds = <String>{};
+  final Set<String> _pendingSaveIds = <String>{};
+  Timer? _likeFeedbackTimer;
 
-  int _selectedIndex = 1;
   int _currentIndex = 0;
-  bool _isPlaying = false;
   bool _isInitialLoading = true;
   bool _isFetching = false;
-  bool _showPlayHint = false;
+  bool _hasFeedError = false;
+  String? _likeFeedbackPostId;
   String? _currentAudioUrl;
-
-  Posts? get _activePost =>
-      _posts.isEmpty || _currentIndex >= _posts.length ? null : _posts[_currentIndex];
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-
-    _audioPlayer = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
-    _audioPlayer.onPlayerStateChanged.listen((state) {
-      if (!mounted) return;
-      setState(() => _isPlaying = state == PlayerState.playing);
+    _tabWorker = ever<int>(_authController.selectedIndex, (index) {
+      if (index != AuthTabs.home) unawaited(_audioPlayback.stop());
     });
+    _interactionSubscription = _beatNowService.interactionChanges.listen(
+      _applyInteractionChange,
+    );
 
     _loadInitialPosts();
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _audioPlayer.dispose();
+    _tabWorker.dispose();
+    unawaited(_interactionSubscription.cancel());
+    _likeFeedbackTimer?.cancel();
     _pageController.dispose();
+    unawaited(_audioPlayback.stop());
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
-      _audioPlayer.stop();
-    }
-  }
-
   Future<void> _loadInitialPosts() async {
-    setState(() => _isInitialLoading = true);
+    if (mounted) setState(() => _isInitialLoading = true);
     await _loadMorePosts(forceCount: 5);
     if (_posts.isNotEmpty) {
-      await _activatePost(0);
+      _currentIndex = 0;
+      unawaited(_activatePost(0));
     }
     if (mounted) {
       setState(() => _isInitialLoading = false);
@@ -80,16 +81,25 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
   Future<void> _loadMorePosts({int forceCount = 4}) async {
     if (_isFetching) return;
     _isFetching = true;
+    if (mounted) setState(() => _hasFeedError = false);
 
     try {
       final newPosts = await _beatNowService.getRandomFeedPosts(
         count: forceCount,
         excludeIds: _posts.map((post) => post.id).toSet(),
       );
-      if (!mounted || newPosts.isEmpty) return;
-      setState(() => _posts.addAll(newPosts));
+      if (!mounted) return;
+      final existingIds = _posts.map((post) => post.id).toSet();
+      final uniquePosts = newPosts
+          .where((post) => post.id.isNotEmpty && existingIds.add(post.id))
+          .toList();
+      setState(() {
+        _posts.addAll(uniquePosts);
+        _hasFeedError = false;
+      });
     } catch (error) {
       debugPrint('Feed load error: $error');
+      if (mounted) setState(() => _hasFeedError = true);
     } finally {
       _isFetching = false;
     }
@@ -102,15 +112,15 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
     UserSingleton().current = index;
 
     final post = _posts[index];
-    await _playAudio(post.audioUrl);
-    try {
-      await _beatNowService.registerView(post.id);
-    } catch (error) {
-      debugPrint('View register error: $error');
+    final nextAudioUrl =
+        index + 1 < _posts.length ? _posts[index + 1].audioUrl : null;
+    unawaited(_playAudio(post.audioUrl, nextUrl: nextAudioUrl));
+    if (_viewedPostIds.add(post.id)) {
+      unawaited(_registerPostView(post.id));
     }
 
     if (index >= _posts.length - 3) {
-      _loadMorePosts();
+      unawaited(_loadMorePosts());
     }
 
     if (mounted) {
@@ -118,82 +128,138 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
     }
   }
 
-  Future<void> _playAudio(String url) async {
-    if (_currentAudioUrl == url && _isPlaying) {
+  Future<void> _registerPostView(String postId) async {
+    try {
+      await _beatNowService.registerView(postId);
+    } catch (error) {
+      debugPrint('View register error: $error');
+    }
+  }
+
+  Future<void> _playAudio(String url, {String? nextUrl}) async {
+    _currentAudioUrl = url;
+    await _audioPlayback.play(url, nextUrl: nextUrl);
+  }
+
+  Future<void> _pauseAudio() async {
+    await _audioPlayback.pause();
+  }
+
+  Future<void> _retryFeed() async {
+    if (_posts.isEmpty) {
+      await _loadInitialPosts();
+    } else {
+      await _loadMorePosts();
+    }
+  }
+
+  void _applyInteractionChange(BeatInteractionChange change) {
+    final index = _posts.indexWhere((post) => post.id == change.postId);
+    if (index < 0) return;
+    final current = _posts[index];
+    var updated = current;
+    if (change.liked != null && change.liked != current.liked) {
+      updated = updated.copyWith(
+        liked: change.liked,
+        likes: _adjustCount(current.likes, change.liked!),
+      );
+    }
+    if (change.saved != null && change.saved != current.saved) {
+      updated = updated.copyWith(
+        saved: change.saved,
+        saves: _adjustCount(current.saves, change.saved!),
+      );
+    }
+    if (identical(updated, current)) return;
+    if (mounted) setState(() => _posts[index] = updated);
+  }
+
+  int _adjustCount(int count, bool enabled) {
+    final nonNegativeCount = count < 0 ? 0 : count;
+    return enabled
+        ? nonNegativeCount + 1
+        : (nonNegativeCount > 0 ? nonNegativeCount - 1 : 0);
+  }
+
+  Future<void> _toggleLike(Posts post) async {
+    if (!_pendingLikeIds.add(post.id)) return;
+    final postIndex = _posts.indexWhere((item) => item.id == post.id);
+    if (postIndex < 0) {
+      _pendingLikeIds.remove(post.id);
       return;
     }
-
-    _currentAudioUrl = url;
+    final originalLiked = _posts[postIndex].liked;
+    final targetLiked = !originalLiked;
+    _applyInteractionChange(
+      BeatInteractionChange(postId: post.id, liked: targetLiked),
+    );
+    _beatNowService.publishInteractionChange(post.id, liked: targetLiked);
     try {
-      await _audioPlayer.stop();
-      await _audioPlayer.play(UrlSource(url));
+      if (targetLiked) {
+        await _beatNowService.likePost(post.id);
+      } else {
+        await _beatNowService.unlikePost(post.id);
+      }
     } catch (error) {
-      debugPrint('Audio error: $error');
+      _applyInteractionChange(
+        BeatInteractionChange(postId: post.id, liked: originalLiked),
+      );
+      _beatNowService.publishInteractionChange(post.id, liked: originalLiked);
+      if (mounted) _showInteractionError(error, 'Could not update like.');
+    } finally {
+      _pendingLikeIds.remove(post.id);
     }
   }
 
-  Future<void> _togglePlayback(Posts post) async {
-    if (_isPlaying && _currentAudioUrl == post.audioUrl) {
-      await _audioPlayer.pause();
-    } else {
-      await _playAudio(post.audioUrl);
+  Future<void> _toggleSave(Posts post) async {
+    if (!_pendingSaveIds.add(post.id)) return;
+    final postIndex = _posts.indexWhere((item) => item.id == post.id);
+    if (postIndex < 0) {
+      _pendingSaveIds.remove(post.id);
+      return;
     }
-
-    if (!mounted) return;
-    setState(() => _showPlayHint = true);
-    Future<void>.delayed(const Duration(milliseconds: 450), () {
-      if (mounted) {
-        setState(() => _showPlayHint = false);
+    final originalSaved = _posts[postIndex].saved;
+    final targetSaved = !originalSaved;
+    _applyInteractionChange(
+      BeatInteractionChange(postId: post.id, saved: targetSaved),
+    );
+    _beatNowService.publishInteractionChange(post.id, saved: targetSaved);
+    try {
+      if (targetSaved) {
+        await _beatNowService.savePost(post.id);
+      } else {
+        await _beatNowService.unsavePost(post.id);
       }
+    } catch (error) {
+      _applyInteractionChange(
+        BeatInteractionChange(postId: post.id, saved: originalSaved),
+      );
+      _beatNowService.publishInteractionChange(post.id, saved: originalSaved);
+      if (mounted) _showInteractionError(error, 'Could not update saved beat.');
+    } finally {
+      _pendingSaveIds.remove(post.id);
+    }
+  }
+
+  void _showInteractionError(Object error, String fallback) {
+    final message = error is ApiException ? error.userMessage : fallback;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _likeWithFeedback(Posts post) {
+    _toggleLike(post);
+    _likeFeedbackTimer?.cancel();
+    setState(() => _likeFeedbackPostId = post.id);
+    _likeFeedbackTimer = Timer(const Duration(milliseconds: 520), () {
+      if (mounted) setState(() => _likeFeedbackPostId = null);
     });
-  }
-
-  Future<void> _toggleLike(Posts post, int index) async {
-    final updated = post.copyWith(
-      liked: !post.liked,
-      likes: post.liked ? post.likes - 1 : post.likes + 1,
-    );
-
-    setState(() => _posts[index] = updated);
-
-    try {
-      if (updated.liked) {
-        await _beatNowService.likePost(updated.id);
-      } else {
-        await _beatNowService.unlikePost(updated.id);
-      }
-    } on ApiException catch (error) {
-      setState(() => _posts[index] = post);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
-    }
-  }
-
-  Future<void> _toggleSave(Posts post, int index) async {
-    final updated = post.copyWith(
-      saved: !post.saved,
-      saves: post.saved ? post.saves - 1 : post.saves + 1,
-    );
-
-    setState(() => _posts[index] = updated);
-
-    try {
-      if (updated.saved) {
-        await _beatNowService.savePost(updated.id);
-      } else {
-        await _beatNowService.unsavePost(updated.id);
-      }
-    } on ApiException catch (error) {
-      setState(() => _posts[index] = post);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
-    }
   }
 
   void _openBeatDetails(Posts post) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xFF0E0E12),
+      backgroundColor: BeatNowTokens.surface0,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -208,11 +274,16 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
               children: [
                 Text(
                   post.title,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white),
+                  style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white),
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  post.description.isEmpty ? 'No description added yet.' : post.description,
+                  post.description.isEmpty
+                      ? 'No description added yet.'
+                      : post.description,
                   style: const TextStyle(color: Colors.white70, height: 1.5),
                 ),
                 const SizedBox(height: 18),
@@ -240,10 +311,15 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
       ..username = post.username
       ..id = post.userId
       ..profileImageUrl = post.userPhotoProfile;
-    _authController.changeTab(AuthTabs.otherProfile);
+    unawaited(_audioPlayback.stop());
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ProfileOtherScreen()),
+    );
   }
 
   void _openLyricEditorForBeat(Posts post) {
+    unawaited(_audioPlayback.stop());
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -262,12 +338,13 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(BeatNowTokens.radiusPill),
         color: Colors.white.withValues(alpha: 0.1),
       ),
       child: Text(
         value,
-        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+        style: const TextStyle(
+            color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
       ),
     );
   }
@@ -275,14 +352,8 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF050505),
-      extendBody: true,
-      body: _selectedIndex == 0
-          ? const SavedScreen()
-          : _selectedIndex == 1
-              ? _buildFeed()
-              : const LyricScreen(),
-      bottomNavigationBar: _buildBottomBar(),
+      backgroundColor: BeatNowTokens.background,
+      body: _buildFeed(),
     );
   }
 
@@ -292,10 +363,19 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
     }
 
     if (_posts.isEmpty) {
-      return const Center(
-        child: Text(
-          'No beats available right now.',
-          style: TextStyle(color: Colors.white70),
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('No beats available right now.',
+                style: TextStyle(color: Colors.white70)),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _isFetching ? null : _retryFeed,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Retry'),
+            ),
+          ],
         ),
       );
     }
@@ -305,112 +385,30 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
         PageView.builder(
           controller: _pageController,
           scrollDirection: Axis.vertical,
-          physics: const PageScrollPhysics(),
-          padEnds: false,
           itemCount: _posts.length,
-          onPageChanged: _activatePost,
+          onPageChanged: (index) => unawaited(_activatePost(index)),
           itemBuilder: (_, index) {
             final post = _posts[index];
-            return Stack(
-              fit: StackFit.expand,
-              children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => _togglePlayback(post),
-                  onDoubleTap: () => _toggleLike(post, index),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.network(
-                        post.coverImageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(color: Colors.black),
-                      ),
-                      Container(
-                        color: Colors.black.withValues(alpha: 0.14),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color.fromRGBO(0, 0, 0, 0.24),
-                        Colors.transparent,
-                        Color.fromRGBO(0, 0, 0, 0.28),
-                        Color.fromRGBO(0, 0, 0, 0.9),
-                      ],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: 104,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(child: _buildPostInfo(post)),
-                      const SizedBox(width: 16),
-                      _buildActions(post, index),
-                    ],
-                  ),
-                ),
-                Positioned(
-                  left: 16,
-                  right: 92,
-                  bottom: 38,
-                  child: _buildNowPlayingBar(post),
-                ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 88,
-                  child: Center(
-                    child: Container(
-                      width: 38,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            );
+            return _buildFeedCard(post, index);
           },
         ),
         _buildTopChrome(),
-        if (_showPlayHint)
-          const Center(
-            child: Icon(
-              Icons.play_arrow_rounded,
-              size: 92,
-              color: Colors.white70,
-            ),
-          ),
-        if (_isFetching)
-          const Positioned(
-            top: 90,
-            right: 20,
-            child: SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(strokeWidth: 2),
+        if (_hasFeedError && !_isFetching)
+          Positioned(
+            right: 16,
+            bottom: 104,
+            child: FilledButton.tonalIcon(
+              onPressed: _retryFeed,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Retry loading'),
             ),
           ),
       ],
     );
   }
 
-  void _openChat() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Chat will be available soon.')),
-    );
+  void _openSearch() {
+    _authController.changeTab(AuthTabs.search);
   }
 
   Widget _buildTopChrome() {
@@ -429,110 +427,56 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
                     height: 42,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.16)),
                     ),
-                    child: CircleAvatar(
-                      radius: 20,
-                      backgroundColor: const Color(0xFF16161D),
-                      backgroundImage: NetworkImage(UserSingleton().profileImageUrl),
+                    child: ClipOval(
+                      child: CachedMediaImage(
+                        url: UserSingleton().profileImageUrl,
+                        fallbackAsset: MediaDefaults.profileImage,
+                        width: 42,
+                        height: 42,
+                      ),
                     ),
                   ),
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: BeatNowTokens.space4,
+                      vertical: BeatNowTokens.space3),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
-                    color: Colors.black.withValues(alpha: 0.3),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                    borderRadius:
+                        BorderRadius.circular(BeatNowTokens.radiusPill),
+                    color: Colors.black.withValues(alpha: 0.28),
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.08)),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 9,
-                        height: 9,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [Color(0xFFFF4D9D), Color(0xFF8731E4)],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'BeatNow',
-                        style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700),
-                      ),
-                    ],
+                  child: const Text(
+                    'For You',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
                 const Spacer(),
                 GestureDetector(
-                  onTap: _openChat,
+                  onTap: _openSearch,
                   child: Container(
                     width: 42,
                     height: 42,
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.3),
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.08)),
                     ),
-                    child: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white, size: 20),
+                    child: const Icon(Icons.search_rounded,
+                        color: Colors.white, size: 20),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            if (_activePost != null)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(26),
-                  color: Colors.black.withValues(alpha: 0.28),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _activePost!.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '@${_activePost!.username}',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.64),
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    _buildChromeMetric(Icons.favorite_rounded, '${_activePost!.likes}'),
-                    const SizedBox(width: 10),
-                    _buildChromeMetric(Icons.bookmark_rounded, '${_activePost!.saves}'),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 14),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildFeedTab(label: 'Siguiendo', isActive: false),
-                const SizedBox(width: 20),
-                _buildFeedTab(label: 'Para ti', isActive: true),
               ],
             ),
           ],
@@ -541,47 +485,73 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
     );
   }
 
-  Widget _buildChromeMetric(IconData icon, String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        color: Colors.white.withValues(alpha: 0.06),
-      ),
-      child: Row(
+  Widget _buildFeedCard(Posts post, int index) {
+    final isCurrent = index == _currentIndex;
+    return GestureDetector(
+      onTap: () async {
+        if (index != _currentIndex) {
+          await _activatePost(index);
+        } else if (_audioPlayback.isPlaying &&
+            _currentAudioUrl == post.audioUrl) {
+          await _pauseAudio();
+        } else {
+          await _playAudio(post.audioUrl);
+        }
+      },
+      onDoubleTap: () => _likeWithFeedback(post),
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          Icon(icon, size: 15, color: Colors.white70),
-          const SizedBox(width: 6),
-          Text(
-            value,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+          CachedMediaImage(
+            url: post.coverImageUrl,
+            fallbackAsset: MediaDefaults.coverImage,
+            cacheWidth: (MediaQuery.sizeOf(context).width *
+                    MediaQuery.devicePixelRatioOf(context))
+                .round(),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeedTab({required String label, required bool isActive}) {
-    return AnimatedOpacity(
-      duration: const Duration(milliseconds: 180),
-      opacity: isActive ? 1 : 0.55,
-      child: Column(
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: isActive ? 17 : 15,
-              fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+          IgnorePointer(
+            child: Center(
+              child: AnimatedScale(
+                scale: _likeFeedbackPostId == post.id ? 1 : 0.72,
+                duration: const Duration(milliseconds: 170),
+                curve: Curves.easeOutBack,
+                child: AnimatedOpacity(
+                  opacity: _likeFeedbackPostId == post.id ? 1 : 0,
+                  duration: const Duration(milliseconds: 180),
+                  child: const Icon(
+                    Icons.favorite_rounded,
+                    color: BeatNowTokens.rose,
+                    size: 82,
+                    shadows: [Shadow(color: Colors.black38, blurRadius: 14)],
+                  ),
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 7),
           Container(
-            width: isActive ? 24 : 0,
-            height: 3,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(999),
-              gradient: const LinearGradient(colors: [Color(0xFFFF4D9D), Color(0xFF8731E4)]),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.04),
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.62),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: BeatNowTokens.space4,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(child: _buildPostInfo(post, isCurrent)),
+                const SizedBox(width: 14),
+                _buildActions(post),
+              ],
             ),
           ),
         ],
@@ -589,193 +559,186 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
     );
   }
 
-  Widget _buildPostInfo(Posts post) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(26),
-        color: Colors.black.withValues(alpha: 0.28),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          GestureDetector(
-            onTap: () => _openProfile(post),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
-                    image: DecorationImage(image: NetworkImage(post.userPhotoProfile), fit: BoxFit.cover),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '@${post.username}',
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      Text(
-                        'Beat ${_currentIndex + 1}',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.62),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            post.title,
-            style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w900, height: 0.98),
-          ),
-          const SizedBox(height: 10),
-          Row(
+  Widget _buildPostInfo(Posts post, bool isCurrent) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: () => _openProfile(post),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              if (post.genre.isNotEmpty) _buildInlineBadge(post.genre),
-              if (post.bpm != null) ...[
-                const SizedBox(width: 8),
-                _buildInlineBadge('${post.bpm} BPM'),
-              ],
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.22)),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: CachedMediaImage(
+                  url: post.userPhotoProfile,
+                  fallbackAsset: MediaDefaults.profileImage,
+                  width: 34,
+                  height: 34,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  '@${post.username}',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
             ],
           ),
-          if (post.description.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              post.description,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.78),
-                height: 1.45,
-                fontSize: 14,
-              ),
-            ),
+        ),
+        const SizedBox(height: BeatNowTokens.space2),
+        Text(
+          post.title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            height: 1.08,
+            shadows: [
+              Shadow(
+                  color: Colors.black54, blurRadius: 12, offset: Offset(0, 1)),
+            ],
+          ),
+        ),
+        const SizedBox(height: BeatNowTokens.space2),
+        Wrap(
+          spacing: BeatNowTokens.space2,
+          runSpacing: BeatNowTokens.space1,
+          children: [
+            if (post.genre.isNotEmpty) _buildInlineBadge(post.genre),
+            if (post.bpm != null) _buildInlineBadge('${post.bpm} BPM'),
           ],
-          if (post.tags.isNotEmpty || post.moods.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                ...post.tags.take(2).map((tag) => _metaChip('#$tag')),
-                ...post.moods.take(1).map(_metaChip),
-              ],
-            ),
-          ],
+        ),
+        if (isCurrent && _currentAudioUrl == post.audioUrl) ...[
+          const SizedBox(height: BeatNowTokens.space2),
+          _buildPlaybackIndicator(),
         ],
-      ),
+      ],
     );
   }
 
-  Widget _buildNowPlayingBar(Posts post) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        color: Colors.black.withValues(alpha: 0.46),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(colors: [Color(0xFFFF4D9D), Color(0xFF8731E4)]),
-            ),
-            child: Icon(
-              _isPlaying && _currentAudioUrl == post.audioUrl
-                  ? Icons.pause_rounded
-                  : Icons.play_arrow_rounded,
-              color: Colors.white,
-              size: 18,
-            ),
+  Widget _buildPlaybackIndicator() {
+    return StreamBuilder<AudioPlaybackStatus>(
+      stream: _audioPlayback.statusChanges,
+      initialData: _audioPlayback.status,
+      builder: (context, snapshot) {
+        final status = snapshot.data ?? AudioPlaybackStatus.idle;
+        final isBuffering = status == AudioPlaybackStatus.buffering;
+        final hasError = status == AudioPlaybackStatus.error;
+        final isPlaying = status == AudioPlaybackStatus.playing;
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.34),
+            borderRadius: BorderRadius.circular(BeatNowTokens.radiusSmall),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              _isPlaying && _currentAudioUrl == post.audioUrl
-                  ? 'Now playing ${post.title}'
-                  : 'Tap to preview ${post.title}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isBuffering)
+                const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(strokeWidth: 1.5),
+                )
+              else
+                Icon(
+                  hasError
+                      ? Icons.error_outline_rounded
+                      : isPlaying
+                          ? Icons.graphic_eq_rounded
+                          : Icons.play_arrow_rounded,
+                  color: hasError ? BeatNowTokens.danger : Colors.white,
+                  size: 14,
+                ),
+              const SizedBox(width: 4),
+              Text(
+                isBuffering
+                    ? 'Loading'
+                    : hasError
+                        ? 'Unavailable'
+                        : isPlaying
+                            ? 'Playing'
+                            : 'Paused',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildActions(Posts post, int index) {
+  Widget _buildActions(Posts post) {
     return Column(
       children: [
         _ActionButton(
-          icon: Icons.account_circle_outlined,
-          color: Colors.white,
-          label: 'Perfil',
-          onTap: () => _openProfile(post),
-        ),
-        const SizedBox(height: 18),
-        _ActionButton(
           icon: Icons.favorite,
-          color: post.liked ? const Color(0xFF8731E4) : Colors.white,
+          color: post.liked ? BeatNowTokens.rose : Colors.white,
           label: '${post.likes}',
-          onTap: () => _toggleLike(post, index),
+          tooltip: 'Like',
+          isActive: post.liked,
+          onTap: _pendingLikeIds.contains(post.id)
+              ? null
+              : () => _toggleLike(post),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: BeatNowTokens.space2),
         _ActionButton(
           icon: Icons.bookmark,
-          color: post.saved ? Colors.amber : Colors.white,
+          color: post.saved ? BeatNowTokens.accentSoft : Colors.white,
           label: '${post.saves}',
-          onTap: () => _toggleSave(post, index),
+          tooltip: 'Save',
+          isActive: post.saved,
+          onTap: _pendingSaveIds.contains(post.id)
+              ? null
+              : () => _toggleSave(post),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: BeatNowTokens.space2),
         _ActionButton(
           icon: Icons.notes_rounded,
           color: Colors.white,
-          label: 'Letras',
+          label: 'Write',
+          tooltip: 'Write lyrics',
           onTap: () => _openLyricEditorForBeat(post),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: BeatNowTokens.space2),
         _ActionButton(
           icon: Icons.info_outline_rounded,
           color: Colors.white,
           label: 'Info',
+          tooltip: 'Beat details',
           onTap: () => _openBeatDetails(post),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: BeatNowTokens.space2),
         _ActionButton(
           icon: Icons.ios_share_rounded,
           color: Colors.white,
           label: 'Share',
+          tooltip: 'Share beat',
           onTap: () => SharePlus.instance.share(
-            ShareParams(text: 'BeatNow\n${post.title}\n${post.description}\n${post.audioUrl}'),
+            ShareParams(
+                text:
+                    'BeatNow\n${post.title}\n${post.description}\n${post.audioUrl}'),
           ),
         ),
       ],
@@ -786,65 +749,16 @@ class _HomeScreenState extends State<HomeScreenState> with WidgetsBindingObserve
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        color: const Color(0xFF111118),
+        borderRadius: BorderRadius.circular(BeatNowTokens.radiusPill),
+        color: Colors.black.withValues(alpha: 0.26),
         border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: Text(
         value,
-        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
-      ),
-    );
-  }
-
-  Widget _buildBottomBar() {
-    return SafeArea(
-      minimum: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.32),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          type: BottomNavigationBarType.fixed,
-          selectedFontSize: 0,
-          unselectedFontSize: 0,
-          onTap: (index) {
-            setState(() {
-              _selectedIndex = index;
-              _audioPlayer.stop();
-            });
-          },
-          items: [
-            BottomNavigationBarItem(
-              icon: Icon(
-                Icons.bookmark_rounded,
-                color: _selectedIndex == 0 ? const Color(0xFF8731E4) : Colors.white,
-              ),
-              label: '',
-            ),
-            BottomNavigationBarItem(
-              icon: Image.asset(
-                'assets/images/icono_central_blanco.png',
-                width: 28,
-                height: 28,
-                color: _selectedIndex == 1 ? const Color(0xFF8731E4) : Colors.white,
-              ),
-              label: '',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(
-                Icons.edit_note_rounded,
-                color: _selectedIndex == 2 ? const Color(0xFF8731E4) : Colors.white,
-              ),
-              label: '',
-            ),
-          ],
-        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+            color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -855,35 +769,48 @@ class _ActionButton extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.label,
+    required this.tooltip,
+    this.isActive = false,
     required this.onTap,
   });
 
   final IconData icon;
   final Color color;
   final String label;
-  final VoidCallback onTap;
+  final String tooltip;
+  final bool isActive;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        GestureDetector(
-          onTap: onTap,
-          child: Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.black.withValues(alpha: 0.3),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-            ),
-            child: Icon(icon, color: color, size: 29),
+        IconButton(
+          tooltip: tooltip,
+          onPressed: onTap,
+          style: IconButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            fixedSize: const Size(48, 48),
+            padding: EdgeInsets.zero,
+            backgroundColor: Colors.black.withValues(alpha: 0.34),
+            foregroundColor: color,
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+          ),
+          icon: TweenAnimationBuilder<double>(
+            key: ValueKey(isActive),
+            tween: Tween(begin: 1.2, end: 1),
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutBack,
+            builder: (context, scale, child) =>
+                Transform.scale(scale: scale, child: child),
+            child: Icon(icon, size: 21),
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: BeatNowTokens.space1),
         Text(
           label,
-          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+              color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
         ),
       ],
     );
