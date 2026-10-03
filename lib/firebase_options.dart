@@ -51,20 +51,19 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDxgI8FUyL5FbIkY-4Q_31mVjVkZGLtbF4',
-    appId: '1:749315745117:android:6891621ef46e58c20d34b4',
-    messagingSenderId: '749315745117',
-    projectId: 'auth-2f686',
-    storageBucket: 'auth-2f686.appspot.com',
+    apiKey: 'AIzaSyBYxlMdQpV2C69Tpd4BRW3YMmwQ-Y4cLZI',
+    appId: '1:999819554533:android:636717cb680135e58a2e0c',
+    messagingSenderId: '999819554533',
+    projectId: 'beatnow-f18e9',
+    storageBucket: 'beatnow-f18e9.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBNWyMQlXtUbDtPxv0G6mi9hrWHWANhmW8',
-    appId: '1:749315745117:ios:da9d82da05d994b40d34b4',
-    messagingSenderId: '749315745117',
-    projectId: 'auth-2f686',
-    storageBucket: 'auth-2f686.appspot.com',
-    iosClientId: '749315745117-hu5euib4rssck8441e16t3a6sl0ii7m2.apps.googleusercontent.com',
+    apiKey: 'AIzaSyDfcD3ltEfrhgMwDRIIaRGrZYigRcE7k4g',
+    appId: '1:999819554533:ios:b37ccf3d6168825c8a2e0c',
+    messagingSenderId: '999819554533',
+    projectId: 'beatnow-f18e9',
+    storageBucket: 'beatnow-f18e9.firebasestorage.app',
     iosBundleId: 'app.beatnow.mobile',
   );
 
