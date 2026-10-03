@@ -9,6 +9,7 @@ import 'package:BeatNow/services/api_client.dart';
 import 'package:BeatNow/services/beatnow_service.dart';
 import 'package:BeatNow/theme/beatnow_theme.dart';
 import 'package:BeatNow/widgets/cached_media_image.dart';
+import 'package:BeatNow/widgets/profile_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -264,13 +265,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: Center(
                               child: Stack(
                                 children: [
-                                  ClipOval(
-                                    child: CachedMediaImage(
-                                      url: _user.profileImageUrl,
-                                      fallbackAsset: MediaDefaults.profileImage,
-                                      width: 116,
-                                      height: 116,
-                                    ),
+                                  ProfileAvatar(
+                                    imageUrl: _user.profileImageUrl,
+                                    initial: _user.username,
+                                    size: 116,
                                   ),
                                   Positioned(
                                     right: 0,

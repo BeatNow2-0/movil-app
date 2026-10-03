@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:BeatNow/Screens/AuthScreen/authentication_code_screen.dart';
 import 'package:BeatNow/Screens/AuthScreen/splash_screen.dart';
 import 'package:BeatNow/Screens/HomeScreen/home_screen.dart';
@@ -6,11 +8,15 @@ import 'package:BeatNow/Screens/HomeScreen/saved_screen.dart';
 import 'package:BeatNow/Screens/ProfileScreen/AccountSettingsScreen.dart';
 import 'package:BeatNow/Screens/ProfileScreen/profileuser_screen.dart';
 import 'package:BeatNow/Screens/SearchScreens/search_screen.dart';
+
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'theme/beatnow_theme.dart';
 
+import 'theme/beatnow_theme.dart';
 import 'Controllers/auth_controller.dart';
 import 'Screens/AuthScreen/forgot_password_screen.dart';
 import 'Screens/AuthScreen/login_screen.dart';
@@ -19,7 +25,28 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Inicializar Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Capturar errores de Flutter
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+
+  // Capturar errores asíncronos no controlados
+  PlatformDispatcher.instance.onError = (error, stack) {
+    FirebaseCrashlytics.instance.recordError(
+      error,
+      stack,
+      fatal: true,
+    );
+    return true;
+  };
+
+  // Registrar apertura de la aplicación en Analytics
+  await FirebaseAnalytics.instance.logAppOpen();
+
   runApp(const MyApp());
 }
 
@@ -46,6 +73,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final AuthController _authController = Get.put(AuthController());
+
   final List<Widget?> _primaryPages = List<Widget?>.filled(5, null);
 
   @override
@@ -53,8 +81,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return Obx(() {
       final selectedTab = _authController.selectedIndex.value;
       final selectedIndex = _navigationIndex(selectedTab);
+
       if (selectedIndex != null) {
         _primaryPages[selectedIndex] ??= _primaryPage(selectedIndex);
+
         return Scaffold(
           body: IndexedStack(
             index: selectedIndex,
@@ -66,7 +96,9 @@ class _HomeScreenState extends State<HomeScreen> {
           bottomNavigationBar: BottomNavigationBar(
             currentIndex: selectedIndex,
             type: BottomNavigationBarType.fixed,
-            onTap: (index) => _authController.changeTab(_tabForIndex(index)),
+            onTap: (index) => _authController.changeTab(
+              _tabForIndex(index),
+            ),
             items: const [
               BottomNavigationBarItem(
                 icon: Icon(Icons.home_outlined),
@@ -99,18 +131,27 @@ class _HomeScreenState extends State<HomeScreen> {
       switch (selectedTab) {
         case AuthTabs.splash:
           return const SplashScreen();
+
         case AuthTabs.signUp:
           return const SignUpScreen();
+
         case AuthTabs.forgotPassword:
           return ForgotPasswordScreen();
+
         case AuthTabs.accountSettings:
           return AccountSettingsScreen();
+
         case AuthTabs.login:
           return const LoginScreen();
+
         case AuthTabs.codeConfirmation:
           return const CodeConfirmationScreen();
+
         case AuthTabs.sendingResetEmail:
-          return const SplashScreen(sendPasswordReset: true);
+          return const SplashScreen(
+            sendPasswordReset: true,
+          );
+
         default:
           return const LoginScreen();
       }
@@ -121,14 +162,19 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (index) {
       case 0:
         return const HomeScreenState();
+
       case 1:
         return const SearchScreen();
+
       case 2:
         return const SavedScreen();
+
       case 3:
         return const LyricScreen();
+
       case 4:
         return const ProfileScreen();
+
       default:
         return const HomeScreenState();
     }
@@ -138,14 +184,19 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (tab) {
       case AuthTabs.home:
         return 0;
+
       case AuthTabs.search:
         return 1;
+
       case AuthTabs.saved:
         return 2;
+
       case AuthTabs.lyrics:
         return 3;
+
       case AuthTabs.profile:
         return 4;
+
       default:
         return null;
     }
@@ -155,12 +206,16 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (index) {
       case 1:
         return AuthTabs.search;
+
       case 2:
         return AuthTabs.saved;
+
       case 3:
         return AuthTabs.lyrics;
+
       case 4:
         return AuthTabs.profile;
+
       case 0:
       default:
         return AuthTabs.home;

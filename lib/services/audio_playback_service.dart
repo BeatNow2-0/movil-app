@@ -16,11 +16,19 @@ class AudioPlaybackService with WidgetsBindingObserver {
   AudioPlayer _activePlayer = AudioPlayer();
   AudioPlayer _preloadPlayer = AudioPlayer();
   StreamSubscription<PlayerState>? _activeStateSubscription;
+  StreamSubscription<Duration>? _activeDurationSubscription;
+  StreamSubscription<Duration>? _activePositionSubscription;
   final StreamController<AudioPlaybackStatus> _statusController =
       StreamController<AudioPlaybackStatus>.broadcast();
+  final StreamController<Duration> _durationController =
+      StreamController<Duration>.broadcast();
+  final StreamController<Duration> _positionController =
+      StreamController<Duration>.broadcast();
   Future<void> _commands = Future<void>.value();
   Future<void> _preparation = Future<void>.value();
   AudioPlaybackStatus _status = AudioPlaybackStatus.idle;
+  Duration _duration = Duration.zero;
+  Duration _position = Duration.zero;
   String? _currentUrl;
   String? _preparedUrl;
   int _requestId = 0;
@@ -28,7 +36,11 @@ class AudioPlaybackService with WidgetsBindingObserver {
   bool _resumeOnForeground = false;
 
   Stream<AudioPlaybackStatus> get statusChanges => _statusController.stream;
+  Stream<Duration> get durationChanges => _durationController.stream;
+  Stream<Duration> get positionChanges => _positionController.stream;
   AudioPlaybackStatus get status => _status;
+  Duration get duration => _duration;
+  Duration get position => _position;
   bool get isPlaying => _status == AudioPlaybackStatus.playing;
 
   void _emit(AudioPlaybackStatus status) {
@@ -37,6 +49,9 @@ class AudioPlaybackService with WidgetsBindingObserver {
   }
 
   void _listenToActivePlayer() {
+    unawaited(_activeStateSubscription?.cancel());
+    unawaited(_activeDurationSubscription?.cancel());
+    unawaited(_activePositionSubscription?.cancel());
     _activeStateSubscription = _activePlayer.onPlayerStateChanged.listen(
       (state) {
         switch (state) {
@@ -56,6 +71,25 @@ class AudioPlaybackService with WidgetsBindingObserver {
         _emit(AudioPlaybackStatus.error);
       },
     );
+    _activeDurationSubscription = _activePlayer.onDurationChanged.listen(
+      (duration) {
+        _duration = duration;
+        if (!_durationController.isClosed) _durationController.add(duration);
+      },
+    );
+    _activePositionSubscription = _activePlayer.onPositionChanged.listen(
+      (position) {
+        _position = position;
+        if (!_positionController.isClosed) _positionController.add(position);
+      },
+    );
+  }
+
+  void _resetProgress() {
+    _duration = Duration.zero;
+    _position = Duration.zero;
+    if (!_durationController.isClosed) _durationController.add(_duration);
+    if (!_positionController.isClosed) _positionController.add(_position);
   }
 
   Future<void> _configurePlayers() async {
@@ -76,6 +110,7 @@ class AudioPlaybackService with WidgetsBindingObserver {
     final requestId = ++_requestId;
     _resumeOnForeground = false;
     _currentUrl = url;
+    _resetProgress();
     _emit(AudioPlaybackStatus.buffering);
     _commands = _commands.catchError((Object _) {}).then((_) async {
       try {
@@ -85,7 +120,6 @@ class AudioPlaybackService with WidgetsBindingObserver {
         if (_preparedUrl == url) {
           await _activePlayer.stop();
           if (requestId != _requestId) return;
-          await _activeStateSubscription?.cancel();
           final oldActive = _activePlayer;
           _activePlayer = _preloadPlayer;
           _preloadPlayer = oldActive;
@@ -165,6 +199,7 @@ class AudioPlaybackService with WidgetsBindingObserver {
     final requestId = ++_requestId;
     _resumeOnForeground = false;
     _currentUrl = null;
+    _resetProgress();
     _emit(AudioPlaybackStatus.idle);
     _commands = _commands.catchError((Object _) {}).then((_) async {
       if (requestId != _requestId) return;

@@ -46,19 +46,28 @@ class Posts {
   });
 
   factory Posts.fromApi(Map<String, dynamic> json) {
+    final creator =
+        _firstMap(json, const ['creator', 'user', 'owner', 'author']);
+    final producerData = <String, dynamic>{...json, ...creator};
     return Posts(
       id: MediaDefaults.firstString(json, ['_id', 'id', 'post_id', 'beat_id']),
       title: json['title']?.toString() ?? '',
-      username: json['creator_username']?.toString() ?? json['username']?.toString() ?? '',
+      username: MediaDefaults.firstString(
+        producerData,
+        const ['creator_username', 'username', 'user_username'],
+      ),
       description: json['description']?.toString() ?? '',
       likes: _asCount(json['likes']),
       saves: _asCount(json['saves']),
       views: _asInt(json['views']),
       liked: json['isLiked'] == true || json['liked'] == true,
       saved: json['isSaved'] == true || json['saved'] == true,
-      userId: MediaDefaults.firstString(json, ['user_id', 'creator_id']),
+      userId: MediaDefaults.firstString(
+        producerData,
+        const ['user_id', 'creator_id', '_id', 'id'],
+      ),
       audioFormat: json['audio_format']?.toString() ?? 'mp3',
-      userPhotoProfile: MediaDefaults.profileUrl(json),
+      userPhotoProfile: MediaDefaults.profileUrl(producerData),
       coverImage: MediaDefaults.coverUrl(json),
       audioSourceUrl: MediaDefaults.apiUrl(json, 'audio_url'),
       genre: json['genre']?.toString() ?? '',
@@ -121,6 +130,17 @@ class Posts {
   String get coverImageUrl => coverImage;
   String get audioUrl => audioSourceUrl;
 
+  static Map<String, dynamic> _firstMap(
+    Map<String, dynamic> json,
+    List<String> keys,
+  ) {
+    for (final key in keys) {
+      final value = json[key];
+      if (value is Map<String, dynamic>) return value;
+    }
+    return const <String, dynamic>{};
+  }
+
   static int _asInt(dynamic value) {
     if (value is int) return value;
     if (value is double) return value.round();
@@ -131,7 +151,10 @@ class Posts {
 
   static List<String> _asStringList(dynamic value) {
     if (value is List) {
-      return value.map((item) => item.toString()).where((item) => item.isNotEmpty).toList();
+      return value
+          .map((item) => item.toString())
+          .where((item) => item.isNotEmpty)
+          .toList();
     }
     if (value is String && value.isNotEmpty) {
       if (value.startsWith('[') && value.endsWith(']')) {

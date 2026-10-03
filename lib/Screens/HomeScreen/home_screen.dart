@@ -11,7 +11,9 @@ import 'package:BeatNow/services/api_client.dart';
 import 'package:BeatNow/services/audio_playback_service.dart';
 import 'package:BeatNow/services/beatnow_service.dart';
 import 'package:BeatNow/theme/beatnow_theme.dart';
+import 'package:BeatNow/widgets/beatnow_logo.dart';
 import 'package:BeatNow/widgets/cached_media_image.dart';
+import 'package:BeatNow/widgets/profile_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
@@ -422,29 +424,17 @@ class _HomeScreenState extends State<HomeScreenState> {
               children: [
                 GestureDetector(
                   onTap: () => _authController.changeTab(AuthTabs.profile),
-                  child: Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.16)),
-                    ),
-                    child: ClipOval(
-                      child: CachedMediaImage(
-                        url: UserSingleton().profileImageUrl,
-                        fallbackAsset: MediaDefaults.profileImage,
-                        width: 42,
-                        height: 42,
-                      ),
-                    ),
+                  child: ProfileAvatar(
+                    imageUrl: UserSingleton().profileImageUrl,
+                    initial: UserSingleton().username,
+                    size: 42,
+                    borderWidth: 1,
+                    borderColor: Colors.white.withValues(alpha: 0.16),
                   ),
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: BeatNowTokens.space4,
-                      vertical: BeatNowTokens.space3),
+                  padding: const EdgeInsets.symmetric(horizontal: 11),
                   decoration: BoxDecoration(
                     borderRadius:
                         BorderRadius.circular(BeatNowTokens.radiusPill),
@@ -452,12 +442,10 @@ class _HomeScreenState extends State<HomeScreenState> {
                     border:
                         Border.all(color: Colors.white.withValues(alpha: 0.08)),
                   ),
-                  child: const Text(
-                    'For You',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
+                  child: const SizedBox(
+                    height: 42,
+                    child: Center(
+                      child: BeatNowLogo(size: 24, subtitle: null),
                     ),
                   ),
                 ),
@@ -569,21 +557,12 @@ class _HomeScreenState extends State<HomeScreenState> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.22)),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: CachedMediaImage(
-                  url: post.userPhotoProfile,
-                  fallbackAsset: MediaDefaults.profileImage,
-                  width: 34,
-                  height: 34,
-                ),
+              ProfileAvatar(
+                imageUrl: post.userPhotoProfile,
+                initial: post.username,
+                size: 34,
+                borderWidth: 1,
+                borderColor: Colors.white.withValues(alpha: 0.22),
               ),
               const SizedBox(width: 10),
               Flexible(

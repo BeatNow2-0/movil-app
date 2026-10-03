@@ -2,6 +2,7 @@ import 'package:BeatNow/Controllers/auth_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:BeatNow/theme/beatnow_theme.dart';
+import 'package:BeatNow/widgets/beatnow_logo.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key, this.sendPasswordReset = false});
@@ -30,8 +31,16 @@ class _SplashScreenState extends State<SplashScreen> {
     return const Scaffold(
       backgroundColor: BeatNowTokens.background,
       body: Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(BeatNowTokens.accentSoft),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            BeatNowLogo(size: 72, subtitle: 'Discover your next sound'),
+            SizedBox(height: BeatNowTokens.space6),
+            CircularProgressIndicator(
+              valueColor:
+                  AlwaysStoppedAnimation<Color>(BeatNowTokens.accentSoft),
+            ),
+          ],
         ),
       ),
     );

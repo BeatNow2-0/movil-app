@@ -9,7 +9,7 @@ import 'package:BeatNow/services/api_client.dart';
 import 'package:BeatNow/services/beatnow_service.dart';
 import 'package:BeatNow/theme/beatnow_theme.dart';
 import 'package:BeatNow/widgets/cached_media_image.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:BeatNow/widgets/profile_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -23,6 +23,44 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
+  // Keep these values aligned with the beat metadata fields used by search.
+  // The mobile project does not contain the upload form or an options endpoint.
+  static const Map<String, List<String>> _beatMetadataOptions = {
+    'genre': [
+      'Afrobeats',
+      'Ambient',
+      'Boom Bap',
+      'Drill',
+      'Dancehall',
+      'House',
+      'Jersey Club',
+      'Lo-fi',
+      'Pop',
+      'R&B',
+      'Reggaeton',
+      'Trap',
+    ],
+    'moods': [
+      'Chill',
+      'Dark',
+      'Energetic',
+      'Happy',
+      'Melancholic',
+      'Romantic',
+      'Sad',
+      'Uplifting',
+    ],
+    'instruments': [
+      '808',
+      'Bass',
+      'Drums',
+      'Guitar',
+      'Keys',
+      'Piano',
+      'Strings',
+      'Synth',
+    ],
+  };
   List<String> _searchHistory = [];
   final AuthController _authController = Get.find<AuthController>();
   final BeatNowService _beatNowService = BeatNowService();
@@ -360,8 +398,9 @@ class _SearchScreenState extends State<SearchScreen> {
     required int requestId,
     required bool reset,
   }) async {
-    if (requestId != _beatRequestId || _searchingUsers || !_hasBeatCriteria)
+    if (requestId != _beatRequestId || _searchingUsers || !_hasBeatCriteria) {
       return;
+    }
     if (!reset && (_isLoadingMoreBeats || !_hasMoreBeats)) return;
 
     final skip = reset ? 0 : _beatSkip;
@@ -513,18 +552,16 @@ class _SearchScreenState extends State<SearchScreen> {
         final username = user['username']?.toString() ?? '';
         final fullName = user['full_name']?.toString().trim() ?? '';
         return ListTile(
-          leading: ClipOval(
-            child: _producerAvatar(user['profile_image_url']?.toString()),
+          leading: ProfileAvatar(
+            imageUrl: user['profile_image_url']?.toString(),
+            initial: username,
+            size: 40,
           ),
           title: Text(fullName.isNotEmpty ? fullName : '@$username'),
           subtitle: fullName.isNotEmpty ? Text('@$username') : null,
           onTap: () {
             if (user['_id'] != null && user['username'] != null) {
-              _beatNowService.setOtherUserFromSearchResult(user);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ProfileOtherScreen()),
-              );
+              _openUserResult(user);
             } else {
               // Manejar caso donde user['_id'] o user['username'] es nulo
               debugPrint('Usuario no válido: $_userSearchResults');
@@ -535,32 +572,25 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _producerAvatar(String? imageUrl) {
-    final source = imageUrl?.trim() ?? '';
-    final uri = Uri.tryParse(source);
-    if (uri == null ||
-        (uri.scheme != 'http' && uri.scheme != 'https') ||
-        uri.host.isEmpty) {
-      return _producerAvatarFallback();
+  void _openUserResult(Map<String, dynamic> user) {
+    final userId = (user['_id'] ?? user['id'])?.toString().trim() ?? '';
+    final username = user['username']?.toString().trim().toLowerCase() ?? '';
+    final currentUser = UserSingleton();
+    final isCurrentUserById =
+        userId.isNotEmpty && userId == currentUser.id.trim();
+    final isCurrentUserByUsername = username.isNotEmpty &&
+        username == currentUser.username.trim().toLowerCase();
+    if (isCurrentUserById || isCurrentUserByUsername) {
+      _authController.changeTab(AuthTabs.profile);
+      return;
     }
-    return CachedNetworkImage(
-      imageUrl: source,
-      width: 40,
-      height: 40,
-      fit: BoxFit.cover,
-      fadeInDuration: const Duration(milliseconds: 180),
-      placeholder: (_, __) => _producerAvatarFallback(),
-      errorWidget: (_, __, ___) => _producerAvatarFallback(),
+
+    _beatNowService.setOtherUserFromSearchResult(user);
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ProfileOtherScreen()),
     );
   }
-
-  Widget _producerAvatarFallback() => Container(
-        width: 40,
-        height: 40,
-        color: BeatNowTokens.surface2,
-        alignment: Alignment.center,
-        child: const Icon(Icons.person_rounded, color: Colors.white54),
-      );
 
   Map<String, dynamic>? _matchingCurrentUser(String term) {
     final user = UserSingleton();
@@ -665,53 +695,62 @@ class _SearchScreenState extends State<SearchScreen> {
             : post.userId == UserSingleton().id
                 ? UserSingleton().username
                 : 'Producer';
-        return Container(
-          decoration: BoxDecoration(
-            color: BeatNowTokens.surface1,
+        return Material(
+          color: BeatNowTokens.surface1,
+          borderRadius: BorderRadius.circular(BeatNowTokens.radiusMedium),
+          child: InkWell(
             borderRadius: BorderRadius.circular(BeatNowTokens.radiusMedium),
-            border: Border.all(color: Colors.white10),
-          ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(12),
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(BeatNowTokens.radiusMedium),
-              child: CachedMediaImage(
-                url: post.coverImageUrl,
-                fallbackAsset: MediaDefaults.coverImage,
-                width: 56,
-                height: 56,
+            onTap: () => _openBeatResult(index),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(BeatNowTokens.radiusMedium),
+                border: Border.all(color: Colors.white10),
               ),
-            ),
-            title:
-                Text(post.title, style: const TextStyle(color: Colors.white)),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 4),
-                Text(
-                  '@$producerName',
-                  style: const TextStyle(color: Colors.white70),
+              child: ListTile(
+                contentPadding: const EdgeInsets.all(12),
+                leading: ClipRRect(
+                  borderRadius:
+                      BorderRadius.circular(BeatNowTokens.radiusMedium),
+                  child: CachedMediaImage(
+                    url: post.coverImageUrl,
+                    fallbackAsset: MediaDefaults.coverImage,
+                    width: 56,
+                    height: 56,
+                  ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  [
-                    if (post.genre.isNotEmpty) post.genre,
-                    if (post.bpm != null) '${post.bpm} BPM',
-                    if (post.tags.isNotEmpty)
-                      '#${post.tags.take(2).join(' #')}',
-                  ].join('  •  '),
-                  style: const TextStyle(color: Colors.white54, fontSize: 12),
-                ),
-              ],
-            ),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('${post.likes}',
+                title: Text(post.title,
                     style: const TextStyle(color: Colors.white)),
-                const Text('likes',
-                    style: TextStyle(color: Colors.white54, fontSize: 12)),
-              ],
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 4),
+                    Text(
+                      '@$producerName',
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      [
+                        if (post.genre.isNotEmpty) post.genre,
+                        if (post.bpm != null) '${post.bpm} BPM',
+                        if (post.tags.isNotEmpty)
+                          '#${post.tags.take(2).join(' #')}',
+                      ].join('  •  '),
+                      style:
+                          const TextStyle(color: Colors.white54, fontSize: 12),
+                    ),
+                  ],
+                ),
+                trailing: Icon(
+                  post.audioUrl.isEmpty
+                      ? Icons.info_outline_rounded
+                      : Icons.play_circle_fill_rounded,
+                  color: post.audioUrl.isEmpty
+                      ? BeatNowTokens.textMuted
+                      : BeatNowTokens.accentSoft,
+                  size: 30,
+                ),
+              ),
             ),
           ),
         );
@@ -719,20 +758,33 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  Future<void> _openBeatResult(int index) async {
+    if (index < 0 || index >= _beatSearchResults.length) return;
+    final post = _beatSearchResults[index];
+    HapticFeedback.selectionClick();
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProfileBeatViewer(
+          posts: _beatSearchResults,
+          initialIndex: index,
+          producerName: post.username.isNotEmpty ? post.username : 'Producer',
+        ),
+      ),
+    );
+  }
+
   Future<void> _showFilterPopup(BuildContext context) async {
-    final genreController =
-        TextEditingController(text: _activeFilters['genre'] ?? '');
-    final bpmController =
-        TextEditingController(text: _activeFilters['bpm'] ?? '');
-    final moodController =
-        TextEditingController(text: _activeFilters['moods'] ?? '');
-    final instrumentsController =
-        TextEditingController(text: _activeFilters['instruments'] ?? '');
+    String? genre = _selectedOption('genre');
+    String? mood = _selectedOption('moods');
+    String? instrument = _selectedOption('instruments');
+    String? bpm = _selectedBpm;
     final filters = await showModalBottomSheet<Map<String, String>>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (sheetContext) {
+      builder: (sheetContext) =>
+          StatefulBuilder(builder: (sheetContext, setSheetState) {
         return Padding(
           padding: EdgeInsets.fromLTRB(
             BeatNowTokens.space4,
@@ -751,38 +803,45 @@ class _SearchScreenState extends State<SearchScreen> {
                 Text('Use the filters supported by beat search.',
                     style: Theme.of(context).textTheme.bodyMedium),
                 const SizedBox(height: BeatNowTokens.space4),
-                TextFormField(
-                  controller: genreController,
-                  decoration: const InputDecoration(
-                    labelText: 'Genre',
-                    prefixIcon: Icon(Icons.category_outlined),
-                  ),
+                _metadataDropdown(
+                  label: 'Genre',
+                  icon: Icons.category_outlined,
+                  options: _beatMetadataOptions['genre']!,
+                  value: genre,
+                  onChanged: (value) => setSheetState(() => genre = value),
                 ),
                 const SizedBox(height: BeatNowTokens.space3),
-                TextFormField(
-                  controller: moodController,
-                  decoration: const InputDecoration(
-                    labelText: 'Mood',
-                    prefixIcon: Icon(Icons.mood_outlined),
-                  ),
+                _metadataDropdown(
+                  label: 'Mood',
+                  icon: Icons.mood_outlined,
+                  options: _beatMetadataOptions['moods']!,
+                  value: mood,
+                  onChanged: (value) => setSheetState(() => mood = value),
                 ),
                 const SizedBox(height: BeatNowTokens.space3),
-                TextFormField(
-                  controller: bpmController,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                DropdownButtonFormField<String>(
+                  value: bpm,
                   decoration: const InputDecoration(
                     labelText: 'BPM',
                     prefixIcon: Icon(Icons.speed_rounded),
                   ),
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('Any BPM'),
+                    ),
+                    for (var value = 60; value <= 200; value++)
+                      DropdownMenuItem(value: '$value', child: Text('$value')),
+                  ],
+                  onChanged: (value) => setSheetState(() => bpm = value),
                 ),
                 const SizedBox(height: BeatNowTokens.space3),
-                TextFormField(
-                  controller: instrumentsController,
-                  decoration: const InputDecoration(
-                    labelText: 'Instruments',
-                    prefixIcon: Icon(Icons.piano_rounded),
-                  ),
+                _metadataDropdown(
+                  label: 'Instrument',
+                  icon: Icons.piano_rounded,
+                  options: _beatMetadataOptions['instruments']!,
+                  value: instrument,
+                  onChanged: (value) => setSheetState(() => instrument = value),
                 ),
                 const SizedBox(height: BeatNowTokens.space4),
                 Row(
@@ -798,14 +857,10 @@ class _SearchScreenState extends State<SearchScreen> {
                       child: FilledButton(
                         onPressed: () {
                           Navigator.pop(sheetContext, <String, String>{
-                            if (genreController.text.trim().isNotEmpty)
-                              'genre': genreController.text.trim(),
-                            if (int.tryParse(bpmController.text) != null)
-                              'bpm': bpmController.text,
-                            if (moodController.text.trim().isNotEmpty)
-                              'moods': moodController.text.trim(),
-                            if (instrumentsController.text.trim().isNotEmpty)
-                              'instruments': instrumentsController.text.trim(),
+                            if (genre != null) 'genre': genre!,
+                            if (bpm != null) 'bpm': bpm!,
+                            if (mood != null) 'moods': mood!,
+                            if (instrument != null) 'instruments': instrument!,
                           });
                         },
                         child: const Text('Apply filters'),
@@ -817,15 +872,42 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
           ),
         );
-      },
+      }),
     );
-    genreController.dispose();
-    bpmController.dispose();
-    moodController.dispose();
-    instrumentsController.dispose();
     if (!mounted || filters == null) return;
     setState(() => _activeFilters = filters);
     await _startBeatSearch(_searchController.text.trim());
+  }
+
+  String? _selectedOption(String key) {
+    final selected = _activeFilters[key];
+    return _beatMetadataOptions[key]!.contains(selected) ? selected : null;
+  }
+
+  String? get _selectedBpm {
+    final bpm = int.tryParse(_activeFilters['bpm'] ?? '');
+    return bpm != null && bpm >= 60 && bpm <= 200 ? '$bpm' : null;
+  }
+
+  Widget _metadataDropdown({
+    required String label,
+    required IconData icon,
+    required List<String> options,
+    required String? value,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return DropdownButtonFormField<String>(
+      value: options.contains(value) ? value : null,
+      decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
+      items: [
+        const DropdownMenuItem<String>(value: null, child: Text('Any')),
+        ...options.map((option) => DropdownMenuItem(
+              value: option,
+              child: Text(option),
+            )),
+      ],
+      onChanged: onChanged,
+    );
   }
 
   Future<List<Map<String, dynamic>>> _searchUsers(String query) async {

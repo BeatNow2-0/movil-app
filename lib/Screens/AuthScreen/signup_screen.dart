@@ -7,6 +7,7 @@ import 'package:BeatNow/services/auth_service.dart';
 import 'package:BeatNow/services/beatnow_service.dart';
 import 'package:regexed_validator/regexed_validator.dart';
 import 'package:BeatNow/theme/beatnow_theme.dart';
+import 'package:BeatNow/widgets/beatnow_logo.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -55,62 +56,80 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return Scaffold(
       backgroundColor: BeatNowTokens.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              const SizedBox(height: BeatNowTokens.space5),
-              const Text(
-                'Create your account',
-                style: TextStyle(
-                  fontSize: 26,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Join BeatNow to find your sound.',
-                style: TextStyle(color: BeatNowTokens.textMuted),
-              ),
-              const SizedBox(height: BeatNowTokens.space5),
-              _input(_fullName, 'Full Name'),
-              _input(_email, 'Email Address',
-                  keyboardType: TextInputType.emailAddress),
-              _input(_username, 'Username'),
-              _passwordInput(_password, 'Password', true),
-              _passwordInput(_confirmPassword, 'Confirm Password', false),
-              const SizedBox(height: BeatNowTokens.space2),
-              FilledButton(
-                onPressed: _isLoading ? null : _register,
-                child: _isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2),
-                      )
-                    : const Text('Sign Up'),
-              ),
-              const SizedBox(height: BeatNowTokens.space4),
-              RichText(
-                text: TextSpan(
-                  text: 'Already have an account? ',
-                  style: const TextStyle(color: Colors.white),
-                  children: [
-                    TextSpan(
-                      text: 'Sign In',
-                      style: const TextStyle(
-                        color: BeatNowTokens.accentSoft,
-                        decoration: TextDecoration.underline,
-                      ),
-                      recognizer: _signInRecognizer,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const BeatNowLogo(
+                          size: 86,
+                          subtitle: 'Create. Save. Write.',
+                        ),
+                        const SizedBox(height: BeatNowTokens.space6),
+                        const Text(
+                          'Create your account',
+                          style: TextStyle(
+                            fontSize: 26,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Join BeatNow to find your sound.',
+                          style: TextStyle(color: BeatNowTokens.textMuted),
+                        ),
+                        const SizedBox(height: BeatNowTokens.space5),
+                        _input(_fullName, 'Full Name'),
+                        _input(_email, 'Email Address',
+                            keyboardType: TextInputType.emailAddress),
+                        _input(_username, 'Username'),
+                        _passwordInput(_password, 'Password', true),
+                        _passwordInput(
+                            _confirmPassword, 'Confirm Password', false),
+                        const SizedBox(height: BeatNowTokens.space2),
+                        FilledButton(
+                          onPressed: _isLoading ? null : _register,
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white, strokeWidth: 2),
+                                )
+                              : const Text('Sign Up'),
+                        ),
+                        const SizedBox(height: BeatNowTokens.space4),
+                        RichText(
+                          text: TextSpan(
+                            text: 'Already have an account? ',
+                            style: const TextStyle(color: Colors.white),
+                            children: [
+                              TextSpan(
+                                text: 'Sign In',
+                                style: const TextStyle(
+                                  color: BeatNowTokens.accentSoft,
+                                  decoration: TextDecoration.underline,
+                                ),
+                                recognizer: _signInRecognizer,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

@@ -1,14 +1,18 @@
 import 'dart:async';
 
+import 'package:BeatNow/Controllers/auth_controller.dart';
 import 'package:BeatNow/Models/OtherUserSingleton.dart';
 import 'package:BeatNow/Models/Posts.dart';
+import 'package:BeatNow/Models/UserSingleton.dart';
 import 'package:BeatNow/Models/media_defaults.dart';
 import 'package:BeatNow/services/api_client.dart';
 import 'package:BeatNow/services/audio_playback_service.dart';
 import 'package:BeatNow/services/beatnow_service.dart';
 import 'package:BeatNow/theme/beatnow_theme.dart';
 import 'package:BeatNow/widgets/cached_media_image.dart';
+import 'package:BeatNow/widgets/profile_avatar.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class ProfileOtherScreen extends StatefulWidget {
   const ProfileOtherScreen({super.key});
@@ -21,6 +25,7 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
   final BeatNowService _beatNowService = BeatNowService();
   final AudioPlaybackService _audioPlayback = AudioPlaybackService.instance;
   final OtherUserSingleton _user = OtherUserSingleton();
+  final AuthController _authController = Get.find<AuthController>();
 
   List<Posts>? _posts;
   String _fullName = '';
@@ -29,6 +34,19 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
   int? _publishedBeatCount;
   bool _isFollowingUser = false;
   bool _isUpdatingFollow = false;
+
+  bool get _isOwnProfile {
+    final currentUser = UserSingleton();
+    final currentId = currentUser.id.trim();
+    final viewedId = _user.id.trim();
+    if (currentId.isNotEmpty && viewedId.isNotEmpty) {
+      return currentId == viewedId;
+    }
+
+    final currentUsername = currentUser.username.trim().toLowerCase();
+    final viewedUsername = _user.username.trim().toLowerCase();
+    return currentUsername.isNotEmpty && currentUsername == viewedUsername;
+  }
 
   @override
   void initState() {
@@ -83,7 +101,7 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
 
   Future<void> _toggleFollow() async {
     final userId = _user.id;
-    if (_isUpdatingFollow || userId.isEmpty) return;
+    if (_isUpdatingFollow || userId.isEmpty || _isOwnProfile) return;
 
     final wasFollowing = _isFollowingUser;
     final previousFollowers = _followers;
@@ -132,6 +150,11 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
     );
   }
 
+  void _openOwnProfileSettings() {
+    Navigator.pop(context);
+    _authController.changeTab(AuthTabs.accountSettings);
+  }
+
   @override
   void dispose() {
     unawaited(_audioPlayback.stop());
@@ -163,13 +186,10 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                ClipOval(
-                  child: CachedMediaImage(
-                    url: _user.profileImageUrl,
-                    fallbackAsset: MediaDefaults.profileImage,
-                    width: 84,
-                    height: 84,
-                  ),
+                ProfileAvatar(
+                  imageUrl: _user.profileImageUrl,
+                  initial: username,
+                  size: 84,
                 ),
                 const SizedBox(width: 12),
                 Row(
@@ -212,10 +232,25 @@ class _ProfileOtherScreenState extends State<ProfileOtherScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: SizedBox(
                 width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: _isUpdatingFollow ? null : _toggleFollow,
-                  child: Text(
-                    _isFollowingUser ? 'Following' : 'Follow',
+                child: OutlinedButton.icon(
+                  onPressed: _isOwnProfile
+                      ? _openOwnProfileSettings
+                      : _isUpdatingFollow
+                          ? null
+                          : _toggleFollow,
+                  icon: Icon(
+                    _isOwnProfile
+                        ? Icons.edit_outlined
+                        : _isFollowingUser
+                            ? Icons.check_rounded
+                            : Icons.person_add_alt_1_rounded,
+                  ),
+                  label: Text(
+                    _isOwnProfile
+                        ? 'Edit profile'
+                        : _isFollowingUser
+                            ? 'Following'
+                            : 'Follow',
                     style: const TextStyle(color: Colors.white),
                   ),
                 ),
@@ -334,10 +369,14 @@ class _ProfileBeatViewerState extends State<ProfileBeatViewer> {
   final BeatNowService _beatNowService = BeatNowService();
   late final PageController _pageController;
   late final StreamSubscription<AudioPlaybackStatus> _audioSubscription;
+  late final StreamSubscription<Duration> _durationSubscription;
+  late final StreamSubscription<Duration> _positionSubscription;
   late final StreamSubscription<BeatInteractionChange> _interactionSubscription;
   late List<Posts> _posts;
   late int _currentIndex;
   AudioPlaybackStatus _audioStatus = AudioPlaybackStatus.idle;
+  Duration _duration = Duration.zero;
+  Duration _position = Duration.zero;
   final Set<String> _pendingLikeIds = <String>{};
   final Set<String> _pendingSaveIds = <String>{};
 
@@ -351,6 +390,14 @@ class _ProfileBeatViewerState extends State<ProfileBeatViewer> {
     _audioSubscription = _audioPlayback.statusChanges.listen((status) {
       if (mounted) setState(() => _audioStatus = status);
     });
+    _duration = _audioPlayback.duration;
+    _position = _audioPlayback.position;
+    _durationSubscription = _audioPlayback.durationChanges.listen((duration) {
+      if (mounted) setState(() => _duration = duration);
+    });
+    _positionSubscription = _audioPlayback.positionChanges.listen((position) {
+      if (mounted) setState(() => _position = position);
+    });
     _interactionSubscription =
         _beatNowService.interactionChanges.listen(_applyInteractionChange);
     unawaited(_activateBeat(_currentIndex));
@@ -359,6 +406,8 @@ class _ProfileBeatViewerState extends State<ProfileBeatViewer> {
   @override
   void dispose() {
     unawaited(_audioSubscription.cancel());
+    unawaited(_durationSubscription.cancel());
+    unawaited(_positionSubscription.cancel());
     unawaited(_interactionSubscription.cancel());
     _pageController.dispose();
     unawaited(_audioPlayback.stop());
@@ -629,6 +678,10 @@ class _ProfileBeatViewerState extends State<ProfileBeatViewer> {
                       style: const TextStyle(color: Colors.white70),
                     ),
                   ],
+                  if (post.audioUrl.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    _buildProgress(),
+                  ],
                 ],
               ),
             ),
@@ -636,6 +689,45 @@ class _ProfileBeatViewerState extends State<ProfileBeatViewer> {
         ],
       ),
     );
+  }
+
+  Widget _buildProgress() {
+    final durationMs = _duration.inMilliseconds;
+    final positionMs = _position.inMilliseconds.clamp(0, durationMs);
+    final progress = durationMs <= 0 ? 0.0 : positionMs / durationMs;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        LinearProgressIndicator(
+          value: progress,
+          minHeight: 3,
+          borderRadius: BorderRadius.circular(BeatNowTokens.radiusPill),
+          backgroundColor: Colors.white.withValues(alpha: 0.18),
+          valueColor:
+              const AlwaysStoppedAnimation<Color>(BeatNowTokens.accentSoft),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Text(
+              _formatDuration(_position),
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+            const Spacer(),
+            Text(
+              durationMs <= 0 ? '--:--' : _formatDuration(_duration),
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes.remainder(60).toString();
+    final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
   }
 }
 

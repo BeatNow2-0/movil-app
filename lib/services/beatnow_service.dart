@@ -26,6 +26,8 @@ class BeatNowService {
       : _apiClient = apiClient ?? ApiClient();
 
   final ApiClient _apiClient;
+  static final Map<String, Map<String, dynamic>> _profileCacheById =
+      <String, Map<String, dynamic>>{};
   static final StreamController<BeatInteractionChange> _interactionChanges =
       StreamController<BeatInteractionChange>.broadcast();
 
@@ -62,7 +64,7 @@ class BeatNowService {
   }
 
   Future<Map<String, dynamic>> getCurrentUser() async {
-    final json = await _apiClient.get('/users/users/me');
+    final json = _withProfileCacheBust(await _apiClient.get('/users/users/me'));
     UserSingleton()
       ..id = (json['_id'] ?? json['id'])?.toString() ?? ''
       ..name = json['full_name']?.toString() ?? ''
@@ -73,18 +75,19 @@ class BeatNowService {
     return json;
   }
 
-  Future<Map<String, dynamic>> getUserProfile(String userId) =>
-      _apiClient.get('/users/profile/$userId');
+  Future<Map<String, dynamic>> getUserProfile(String userId) async {
+    return _withProfileCacheBust(
+        await _apiClient.get('/users/profile/$userId'));
+  }
 
   Future<List<dynamic>> getUserPostsRaw(String username) =>
       _apiClient.getList('/users/posts/$username');
 
   Future<List<Posts>> getUserPosts(String username) async {
     final response = await getUserPostsRaw(username);
-    return response
-        .whereType<Map<String, dynamic>>()
-        .map(Posts.fromApi)
-        .toList();
+    final posts =
+        response.whereType<Map<String, dynamic>>().map(Posts.fromApi).toList();
+    return _hydrateCreatorProfiles(posts);
   }
 
   Future<List<Posts>> getRandomFeedPosts(
@@ -105,7 +108,7 @@ class BeatNowService {
           .map(Posts.fromApi)
           .toList();
       if (posts.isNotEmpty) {
-        return posts;
+        return _hydrateCreatorProfiles(posts);
       }
     } on ApiException catch (error) {
       // Fallback to the legacy random endpoint so older deployments still work.
@@ -173,7 +176,8 @@ class BeatNowService {
 
   Future<Posts> getRandomPost() async {
     final json = await _apiClient.get('/posts/random');
-    return Posts.fromApi(json);
+    final posts = await _hydrateCreatorProfiles([Posts.fromApi(json)]);
+    return posts.first;
   }
 
   Future<List<SavedPost>> getSavedPosts() async {
@@ -190,7 +194,8 @@ class BeatNowService {
 
   Future<Posts> getPostById(String postId) async {
     final json = await _apiClient.get('/posts/$postId');
-    return Posts.fromApi(json);
+    final posts = await _hydrateCreatorProfiles([Posts.fromApi(json)]);
+    return posts.first;
   }
 
   Future<void> likePost(String postId) =>
@@ -207,7 +212,10 @@ class BeatNowService {
   Future<List<Map<String, dynamic>>> searchUsers(String query) async {
     final results = await _apiClient
         .getList('/search/user/', queryParameters: {'username': query});
-    return results.whereType<Map<String, dynamic>>().toList();
+    return results
+        .whereType<Map<String, dynamic>>()
+        .map(_withProfileCacheBust)
+        .toList();
   }
 
   Future<List<Map<String, dynamic>>> searchPosts(String query,
@@ -267,10 +275,19 @@ class BeatNowService {
   Future<Map<String, dynamic>> getLyric(String lyricId) =>
       _apiClient.get('/lyrics/$lyricId');
 
-  Future<void> followUser(String userId) =>
-      _apiClient.post('/follows/follow/$userId');
-  Future<void> unfollowUser(String userId) =>
-      _apiClient.delete('/follows/unfollow/$userId');
+  Future<void> followUser(String userId) {
+    if (_isCurrentUser(userId)) {
+      throw ApiException('Users cannot follow themselves', statusCode: 409);
+    }
+    return _apiClient.post('/follows/follow/$userId');
+  }
+
+  Future<void> unfollowUser(String userId) {
+    if (_isCurrentUser(userId)) {
+      throw ApiException('Users cannot unfollow themselves', statusCode: 409);
+    }
+    return _apiClient.delete('/follows/unfollow/$userId');
+  }
 
   Future<void> changeProfilePhoto(String filePath) async {
     final uri =
@@ -289,10 +306,13 @@ class BeatNowService {
       throw ApiException('Failed to upload profile image',
           statusCode: response.statusCode, responseBody: body);
     }
+    _profileCacheById.remove(UserSingleton().id.trim());
   }
 
-  Future<void> deleteProfilePhoto() =>
-      _apiClient.delete('/users/delete_photo_profile');
+  Future<void> deleteProfilePhoto() async {
+    await _apiClient.delete('/users/delete_photo_profile');
+    _profileCacheById.remove(UserSingleton().id.trim());
+  }
 
   void setOtherUserFromSearchResult(Map<String, dynamic> user) {
     OtherUserSingleton()
@@ -300,5 +320,48 @@ class BeatNowService {
       ..username = user['username']?.toString() ?? ''
       ..name = user['full_name']?.toString() ?? ''
       ..profileImageUrl = MediaDefaults.profileUrl(user);
+  }
+
+  bool _isCurrentUser(String userId) {
+    final currentId = UserSingleton().id.trim();
+    return currentId.isNotEmpty && currentId == userId.trim();
+  }
+
+  Map<String, dynamic> _withProfileCacheBust(Map<String, dynamic> json) {
+    final copy = Map<String, dynamic>.from(json);
+    copy['_profile_cache_bust'] =
+        DateTime.now().millisecondsSinceEpoch.toString();
+    return copy;
+  }
+
+  Future<List<Posts>> _hydrateCreatorProfiles(List<Posts> posts) async {
+    if (posts.isEmpty) return posts;
+
+    final missingProfileIds = posts
+        .map((post) => post.userId.trim())
+        .where((userId) => userId.isNotEmpty)
+        .where((userId) => !_profileCacheById.containsKey(userId))
+        .toSet();
+
+    await Future.wait(missingProfileIds.map((userId) async {
+      try {
+        _profileCacheById[userId] = await getUserProfile(userId);
+      } catch (_) {
+        _profileCacheById[userId] = const <String, dynamic>{};
+      }
+    }));
+
+    return posts.map((post) {
+      final profile = _profileCacheById[post.userId.trim()];
+      if (profile == null || profile.isEmpty) return post;
+
+      final profileImageUrl = MediaDefaults.profileUrl(profile);
+      final username = profile['username']?.toString().trim();
+      return post.copyWith(
+        username:
+            username != null && username.isNotEmpty ? username : post.username,
+        userPhotoProfile: profileImageUrl,
+      );
+    }).toList();
   }
 }
